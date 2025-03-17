@@ -55,7 +55,7 @@ http://127.0.0.1:5000/
   python app.py --port 8000
   ```
 
-#Django Event Booking Platform: Backend To-DO
+# Django Event Booking Platform: Backend To-DO
 
 This document outlines the structure and responsibilities of the apps in the Django-based event booking platform. The platform serves two user types: **clients** and **vendors**, with separate interfaces and functionalities for each.
 
