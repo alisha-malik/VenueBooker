@@ -1,0 +1,34 @@
+# Django
+*.log
+*.pyc
+__pycache__/
+local_settings.py
+media/
+staticfiles/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+.env/
+
+# VS Code
+.vscode/
+
+# pytest cache
+.pytest_cache/
+
+# MyPy cache
+.mypy_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
