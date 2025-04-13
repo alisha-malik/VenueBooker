@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Venue | VenueBooker</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f7f7;
+            padding: 2rem;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button {
+            margin-top: 2rem;
+            width: 100%;
+            background-color: #2c3e50;
+            color: white;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #34495e;
+        }
+
+        a.back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #555;
+            text-decoration: none;
+        }
+
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Add New Venue</h1>
+        <form method="POST">
+            {% csrf_token %}
+            <label for="name">Venue Name</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="status">Status</label>
+            <select id="status" name="status" required>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Under Maintenance">Under Maintenance</option>
+            </select>
+
+            <label for="rate">Hourly Rate ($)</label>
+            <input type="number" step="0.01" id="rate" name="rate" required>
+
+            <label for="street">Street</label>
+            <input type="text" id="street" name="street" required>
+
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" required>
+
+            <label for="province">Province</label>
+            <select id="province" name="province" required>
+                <option value="AB">AB</option>
+                <option value="BC">BC</option>
+                <option value="MB">MB</option>
+                <option value="NB">NB</option>
+                <option value="NL">NL</option>
+                <option value="NS">NS</option>
+                <option value="NT">NT</option>
+                <option value="NU">NU</option>
+                <option value="ON">ON</option>
+                <option value="PE">PE</option>
+                <option value="QC">QC</option>
+                <option value="SK">SK</option>
+                <option value="YT">YT</option>
+            </select>
+
+            <label for="postal_code">Postal Code</label>
+            <input type="text" id="postal_code" name="postal_code" required>
+
+            <button type="submit">Add Venue</button>
+        </form>
+
+        <!-- ✅ Fixed back link -->
+        <a href="{% url 'users:v_dashboard' %}" class="back-link">← Back to Dashboard</a>
+    </div>
+</body>
+</html>

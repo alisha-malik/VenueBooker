@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard | Event Booking Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .venue-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-calendar-alt text-2xl"></i>
+                <span class="text-xl font-bold">Event Booking Platform</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <a href="#" class="hover:text-blue-200"><i class="fas fa-bell"></i></a>
+                <a href="#" class="hover:text-blue-200"><i class="fas fa-envelope"></i></a>
+                <div class="relative">
+                    <button class="flex items-center space-x-1 focus:outline-none">
+                        <span>{{ user_email }}</span>
+                        <i class="fas fa-user-circle text-xl"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden">
+                        <a href="#" class="block px-4 py-2 text-gray-800 hover:bg-blue-100">Profile</a>
+                        <a href="#" class="block px-4 py-2 text-gray-800 hover:bg-blue-100">Settings</a>
+                        <a href="{% url 'users:logout' %}" class="block px-4 py-2 text-gray-800 hover:bg-blue-100">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- Welcome Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Welcome back!</h1>
+            <p class="text-gray-600">Find and book the perfect venue for your next event.</p>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Find a Venue</h2>
+            <form class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Location</label>
+                        <input type="text" placeholder="City, neighborhood, etc." class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Event Type</label>
+                        <select class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>All Types</option>
+                            <option>Wedding</option>
+                            <option>Corporate</option>
+                            <option>Birthday</option>
+                            <option>Reception</option>
+                            <option>Conference</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Capacity</label>
+                        <select class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Any Size</option>
+                            <option>1-50 guests</option>
+                            <option>51-100 guests</option>
+                            <option>101-200 guests</option>
+                            <option>201+ guests</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Date</label>
+                        <input type="date" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Price Range</label>
+                        <select class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Any Price</option>
+                            <option>$0-$500</option>
+                            <option>$501-$1000</option>
+                            <option>$1001-$2000</option>
+                            <option>$2001+</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Amenities</label>
+                        <select class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>All Amenities</option>
+                            <option>Parking</option>
+                            <option>Catering</option>
+                            <option>AV Equipment</option>
+                            <option>Outdoor Space</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Search Venues</button>
+            </form>
+        </div>
+
+        <!-- Upcoming Bookings Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Your Upcoming Bookings</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-3 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Venue</th>
+                            <th class="py-3 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Date</th>
+                            <th class="py-3 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Time</th>
+                            <th class="py-3 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Event Type</th>
+                            <th class="py-3 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="py-3 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">Mountain View Hall</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">May 15, 2025</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">2:00 PM - 8:00 PM</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">Wedding</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">
+                                <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Confirmed</span>
+                            </td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">
+                                <a href="#" class="text-blue-600 hover:text-blue-800 mr-2">View</a>
+                                <a href="#" class="text-red-600 hover:text-red-800">Cancel</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">Downtown Conference Center</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">June 10, 2025</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">9:00 AM - 5:00 PM</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">Corporate</td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">
+                                <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">Pending</span>
+                            </td>
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm">
+                                <a href="#" class="text-blue-600 hover:text-blue-800 mr-2">View</a>
+                                <a href="#" class="text-red-600 hover:text-red-800">Cancel</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-right">
+                <a href="#" class="text-blue-600 hover:text-blue-800">View all bookings →</a>
+            </div>
+        </div>
+
+        <!-- Recommended Venues -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Recommended Venues</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Venue Card 1 -->
+                <div class="venue-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="h-48 bg-gray-300 relative">
+                        <div class="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-xs">Popular</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Riverside Banquet Hall</h3>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span>Downtown, Calgary</span>
+                        </div>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-users mr-1"></i>
+                            <span>Up to 200 guests</span>
+                        </div>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-dollar-sign mr-1"></i>
+                            <span>$1,200 - $2,500</span>
+                        </div>
+                        <div class="flex items-center text-amber-500 mt-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <span class="text-gray-600 text-sm ml-1">(48 reviews)</span>
+                        </div>
+                        <button class="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">View Details</button>
+                    </div>
+                </div>
+                
+                <!-- Venue Card 2 -->
+                <div class="venue-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="h-48 bg-gray-300 relative">
+                        <div class="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs">New</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800">The Garden Pavilion</h3>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span>West Calgary</span>
+                        </div>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-users mr-1"></i>
+                            <span>Up to 150 guests</span>
+                        </div>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-dollar-sign mr-1"></i>
+                            <span>$800 - $1,800</span>
+                        </div>
+                        <div class="flex items-center text-amber-500 mt-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            <span class="text-gray-600 text-sm ml-1">(32 reviews)</span>
+                        </div>
+                        <button class="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">View Details</button>
+                    </div>
+                </div>
+                
+                <!-- Venue Card 3 -->
+                <div class="venue-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="h-48 bg-gray-300 relative">
+                        <div class="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded text-xs">Featured</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Heritage Event Center</h3>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span>East Calgary</span>
+                        </div>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-users mr-1"></i>
+                            <span>Up to 300 guests</span>
+                        </div>
+                        <div class="flex items-center text-gray-600 text-sm mt-1">
+                            <i class="fas fa-dollar-sign mr-1"></i>
+                            <span>$1,500 - $3,000</span>
+                        </div>
+                        <div class="flex items-center text-amber-500 mt-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <span class="text-gray-600 text-sm ml-1">(64 reviews)</span>
+                        </div>
+                        <button class="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">View Details</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-right">
+                <a href="#" class="text-blue-600 hover:text-blue-800">View all venues →</a>
+            </div>
+        </div>
+
+        <!-- Recent Inquiries Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Your Recent Inquiries</h2>
+            <div class="space-y-4">
+                <div class="border-b border-gray-200 pb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Lakeside Reception Hall</h3>
+                            <p class="text-gray-600 text-sm">Inquiry sent: April 8, 2025</p>
+                        </div>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">Response Received</span>
+                    </div>
+                    <p class="text-gray-700 mt-2 text-sm">Your inquiry about availability for a July wedding has received a response.</p>
+                    <div class="mt-2">
+                        <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">View conversation</a>
+                    </div>
+                </div>
+                
+                <div class="border-b border-gray-200 pb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Urban Rooftop Venue</h3>
+                            <p class="text-gray-600 text-sm">Inquiry sent: April 10, 2025</p>
+                        </div>
+                        <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">Awaiting Response</span>
+                    </div>
+                    <p class="text-gray-700 mt-2 text-sm">You requested information about pricing and availability for a corporate event.</p>
+                    <div class="mt-2">
+                        <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">View conversation</a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-right">
+                <a href="#" class="text-blue-600 hover:text-blue-800">View all inquiries →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Event Booking Platform</h3>
+                    <p class="text-gray-400">Find and book the perfect venue for your next event.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Home</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Browse Venues</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">My Bookings</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Help Center</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Event Types</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Weddings</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Corporate Events</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Birthdays</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Conferences</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-envelope mr-2"></i>
+                            <span>support@eventbooking.com</span>
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-phone mr-2"></i>
+                            <span>(403) 555-1234</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between">
+                <p class="text-gray-400">&copy; 2025 Event Booking Platform. All rights reserved.</p>
+                <div class="flex space-x-4 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript for dropdown menu -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userDropdown = document.querySelector('.relative button');
+            const dropdownMenu = document.querySelector('.absolute');
+            
+            userDropdown.addEventListener('click', function() {
+                dropdownMenu.classList.toggle('hidden');
+            });
+            
+            // Close the dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!userDropdown.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
