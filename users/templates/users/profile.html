@@ -2,6 +2,31 @@
 <html>
 <head>
     <title>Profile</title>
+    <style>
+        .btn {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .logout-link {
+            margin-left: 1rem;
+            background-color: #e74c3c;
+        }
+
+        .logout-link:hover {
+            background-color: #c0392b;
+        }
+    </style>
 </head>
 <body>
     <h1>User Profile</h1>
@@ -18,7 +43,13 @@
         <p><strong>Phone:</strong> {{ user.phone }}</p>
         <p><strong>Account Type:</strong> {{ user.user_type }}</p>
     </div>
-    
-    <a href="{% url 'users:logout' %}">Logout</a>
+
+    {% if user.user_type == "Vendor" %}
+        <a href="{% url 'users:vendor_dashboard' %}" class="btn">Back to Vendor Dashboard</a>
+    {% elif user.user_type == "Client" %}
+        <a href="{% url 'users:client_dashboard' %}" class="btn">Back to Client Dashboard</a>
+    {% endif %}
+
+    <a href="{% url 'users:logout' %}" class="btn logout-link">Logout</a>
 </body>
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+{% load static %}
 <head>
     <meta charset="UTF-8">
     <title>Vendor Dashboard | VenueBooker</title>
@@ -9,9 +10,10 @@
             background-color: #f7f7f7;
             margin: 0;
             padding: 2rem;
+            position: relative;
         }
 
-        h1, h2 {
+        h1, h2, h3 {
             color: #2c3e50;
         }
 
@@ -19,15 +21,66 @@
             margin-bottom: 2rem;
         }
 
-        .venue-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
+        .profile-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.8rem;
+            text-decoration: none;
+            color: #2c3e50;
+            background-color: #eaeaea;
+            padding: 0.5rem 0.8rem;
+            border-radius: 50%;
+            transition: background-color 0.2s;
         }
 
-        .venue-card, .venue-card a {
-            text-decoration: none;
-            color: inherit;
+        .profile-icon:hover {
+            background-color: #ccc;
+        }
+
+        /* Navigation Tabs */
+        .dashboard-nav {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .nav-tab {
+            padding: 0.8rem 1.5rem;
+            margin-right: 0.5rem;
+            background-color: #eee;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+
+        .nav-tab:hover:not(.active) {
+            background-color: #e0e0e0;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Venue Grid */
+        .venue-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
 
         .venue-card {
@@ -36,15 +89,42 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
             transition: transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
         }
 
         .venue-card:hover {
-            transform: scale(1.05);
+            transform: scale(1.03);
+        }
+
+        .venue-card img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
         }
 
         .venue-card h3 {
             margin-top: 0;
             color: #34495e;
+        }
+
+        .venue-card .meta {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .venue-card .meta strong {
+            color: #2c3e50;
+        }
+
+        .venue-card .tags {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
         }
 
         .add-card {
@@ -55,7 +135,8 @@
             justify-content: center;
             font-size: 3rem;
             cursor: pointer;
-            text-decoration: none;
+            border-radius: 10px;
+            transition: background-color 0.2s ease;
         }
 
         .add-card:hover {
@@ -104,44 +185,237 @@
         .logout:hover {
             background-color: #ddd;
         }
+
+        /* Paystubs and Booking History Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .data-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* Messages */
+        .message-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .message-item {
+            background-color: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-sender {
+            font-weight: bold;
+        }
+
+        .message-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .message-preview {
+            color: #444;
+        }
     </style>
 </head>
 <body>
+    <!-- Profile icon in top-right corner -->
+    <a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
+
     <div class="dashboard-header">
         <h1>Welcome to Your Vendor Dashboard</h1>
         <p>Hello, {{ vendor_name }}!</p>
     </div>
 
-    <!-- DEBUG SECTION (temporary) -->
-    <div style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc;">
-        <h3>Debug Information</h3>
-        <p>User ID in session: {{ request.session.user_id }}</p>
-        <p>Number of venues: {{ venues|length }}</p>
-        <p>Venues data: {{ venues }}</p>
+    <!-- Navigation Tabs -->
+    <div class="dashboard-nav">
+        <div class="nav-tab active" onclick="showTab('venues')">My Venues</div>
+        <div class="nav-tab" onclick="showTab('paystubs')">Paystubs</div>
+        <div class="nav-tab" onclick="showTab('bookings')">Booking History</div>
+        <div class="nav-tab" onclick="showTab('messages')">Messages</div>
     </div>
 
-    <h2>Your Venue Listings</h2>
+    <!-- Venues Tab (Default Active) -->
+    <div id="venues" class="tab-content active">
+        <h2>Your Venue Listings</h2>
 
-    {% if has_venues %}
-        <div class="venue-grid">
-            {% for venue in venues %}
-                <a href="{% url 'users:edit_venue' venue.id %}" class="venue-card">
-                    <h3>{{ venue.name }}</h3>
-                    <p><strong>Status:</strong> {{ venue.status }}</p>
-                    <p><strong>Price:</strong> ${{ venue.price }}</p>
-                    <p><small>ID: {{ venue.id }}</small></p>
-                </a>
-            {% endfor %}
+        {% if has_venues %}
+            <div class="venue-grid">
+                {% for venue in venues %}
+                    <a href="{% url 'users:edit_venue' venue.id %}" class="venue-card">
+                        {% if venue.image_url %}
+                            <img src="{{ venue.image_url }}" alt="{{ venue.name }}">
+                        {% else %}
+                            <img src="{% static 'default-placeholder.png' %}" alt="No image available">
+                        {% endif %}
+                        <h3>{{ venue.name }}</h3>
+                        <p>{{ venue.description|truncatewords:20 }}</p>
 
-            <a href="{% url 'users:posting' %}" class="venue-card add-card">+</a>
-        </div>
-    {% else %}
-        <div class="empty-state">
-            <p>You don't have any venues listed yet.</p>
-            <a href="{% url 'users:posting' %}" class="primary-btn">Add Your First Venue</a>
-        </div>
-    {% endif %}
+                        <div class="meta">
+                            <p><strong>Status:</strong> {{ venue.status }}</p>
+                            <p><strong>Rate:</strong> ${{ venue.price }}</p>
+                            <p><strong>Capacity:</strong> {{ venue.capacity }}</p>
+                            <p><strong>Availability:</strong> {{ venue.availability }}</p>
+                        </div>
+
+                        {% if venue.categories %}
+                            <div class="tags">
+                                <strong>Categories:</strong> {{ venue.categories|join:", " }}
+                            </div>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+
+                <a href="{% url 'users:posting' %}" class="add-card">+</a>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>You don't have any venues listed yet.</p>
+                <a href="{% url 'users:posting' %}" class="primary-btn">Add Your First Venue</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Paystubs Tab -->
+    <div id="paystubs" class="tab-content">
+        <h2>Your Paystubs</h2>
+        
+        {% if paystubs %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Venue</th>
+                        <th>Period</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date Paid</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paystub in paystubs %}
+                    <tr>
+                        <td>{{ paystub.venue_name }}</td>
+                        <td>{{ paystub.period_start }} to {{ paystub.period_end }}</td>
+                        <td>${{ paystub.amount }}</td>
+                        <td>{{ paystub.status }}</td>
+                        <td>{{ paystub.payment_date|default:"Pending" }}</td>
+                        <td><a href="#">View Details</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                <p>No paystubs available yet.</p>
+                <p>Your earnings will appear here after you receive bookings.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Booking History Tab -->
+    <div id="bookings" class="tab-content">
+        <h2>Booking History</h2>
+        
+        {% if bookings %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Venue</th>
+                        <th>Client</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr>
+                        <td>{{ booking.venue_name }}</td>
+                        <td>{{ booking.client_name }}</td>
+                        <td>{{ booking.date }}</td>
+                        <td>{{ booking.start_time }} - {{ booking.end_time }}</td>
+                        <td>{{ booking.status }}</td>
+                        <td>${{ booking.amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                <p>No bookings yet.</p>
+                <p>Your booking history will appear here when clients book your venues.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Messages Tab -->
+    <div id="messages" class="tab-content">
+        <h2>Messages</h2>
+        
+        {% if messages %}
+            <ul class="message-list">
+                {% for message in messages %}
+                <li class="message-item">
+                    <div class="message-header">
+                        <span class="message-sender">{{ message.sender }}</span>
+                        <span class="message-date">{{ message.date }}</span>
+                    </div>
+                    <div class="message-preview">{{ message.preview }}...</div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-state">
+                <p>No messages yet.</p>
+                <p>Messages from clients will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
 
     <a href="{% url 'users:logout' %}" class="logout">Logout</a>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Deactivate all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Activate selected tab
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
 </body>
 </html>

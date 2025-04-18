@@ -7,7 +7,7 @@ from django.contrib.auth import logout
 
 def register(request):
     if request.method == 'POST':
-        list(messages.get_messages(request))  # Clears message buffer
+        list(messages.get_messages(request))
 
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
@@ -31,7 +31,7 @@ def register(request):
         with connection.cursor() as cursor:
             try:
                 # Check if this exact email and user_type combination already exists
-                cursor.execute("SELECT 1 FROM user WHERE email = %s AND user_type = %s", [email, user_type])
+                cursor.execute("SELECT 1 FROM users WHERE email = %s AND user_type = %s", [email, user_type])
                 if cursor.fetchone():
                     messages.error(request, f"This email is already registered as a {user_type}. If you forgot your password, you can reset it.")
                     # Pass along email and user_type to the forgot password page
@@ -43,7 +43,7 @@ def register(request):
                 # Proceed to create account (allowed if email is not registered with same user_type)
                 hashed_password = make_password(password)
                 cursor.execute("""
-                    INSERT INTO user 
+                    INSERT INTO users 
                     (first_name, last_name, phone, email, user_type, password)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, [first_name, last_name, phone, email, user_type, hashed_password])
@@ -77,7 +77,7 @@ def user_login(request):
                 # Fetch by email only, not user_type — we want to validate the type afterward
                 cursor.execute("""
                     SELECT user_id, first_name, last_name, phone, email, user_type, password
-                    FROM user WHERE email = %s
+                    FROM users WHERE email = %s
                 """, [email])
                 row = cursor.fetchone()
 
@@ -131,7 +131,7 @@ def forgot_password(request):
         with connection.cursor() as cursor:
             try:
                 # First check if the account exists
-                cursor.execute("SELECT 1 FROM user WHERE email = %s AND user_type = %s", [email, user_type])
+                cursor.execute("SELECT 1 users WHERE email = %s AND user_type = %s", [email, user_type])
                 if not cursor.fetchone():
                     messages.error(request, f"No {user_type} account found with this email.")
                     return render(request, 'users/forgot_password.html', {
@@ -142,7 +142,7 @@ def forgot_password(request):
                 # Update password
                 hashed_password = make_password(new_password)
                 cursor.execute("""
-                    UPDATE user SET password = %s 
+                    UPDATE users SET password = %s 
                     WHERE email = %s AND user_type = %s
                 """, [hashed_password, email, user_type])
                 
@@ -167,17 +167,16 @@ def forgot_password(request):
         'user_type': user_type
     })
 
-@login_required(login_url='users:login')
 def profile(request):
-    """Fallback view for direct /profile access"""
     user_id = request.session.get('user_id')
+
     if not user_id:
         return redirect('users:login')
 
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT first_name, last_name, phone, email, user_type
-            FROM user WHERE user_id = %s
+            FROM users WHERE user_id = %s
         """, [user_id])
         row = cursor.fetchone()
 
@@ -194,6 +193,7 @@ def profile(request):
             'user_type': row[4]
         }
     })
+
 
 def user_logout(request):
     logout(request)
