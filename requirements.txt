@@ -1,6 +1,6 @@
 # Django and MySQL
 Django==4.2.7
-mysqlclient==2.2.0
+pymysql==1.1.0  # ✅ Replacing mysqlclient
 
 # Linting and Formatting
 pylint-django==2.5.3
@@ -10,4 +10,3 @@ black==23.9.1
 pytest==7.4.2                
 pytest-django==4.5.2         
 coverage==7.3.2
-

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login | Venue Booking</title>
+  <style>
+    :root {
+      --text-color: #333;
+      --light-accent: #f0f0f0;
+      --dark-accent: #2c3e50;
+      --highlight: #72bcd4;
+      --soft-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-image: linear-gradient(135deg, #d1f8e2, #d8f1ff, #ffe9cc);
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 380px;
+      padding: 2.5rem;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      box-shadow: var(--soft-shadow);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    h1 {
+      font-weight: 300;
+      font-size: 2.2rem;
+      margin-bottom: 1.8rem;
+      color: var(--dark-accent);
+      letter-spacing: -0.5px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+      margin-top: 2rem;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    label {
+      position: absolute;
+      left: 1rem;
+      top: 0.9rem;
+      color: #7f8c8d;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 1.2rem 1rem 0.8rem;
+      border: none;
+      border-bottom: 1px solid #ddd;
+      font-size: 1rem;
+      background: transparent;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-bottom-color: var(--highlight);
+    }
+
+    input:focus + label,
+    input:not(:placeholder-shown) + label {
+      top: 0.2rem;
+      font-size: 0.7rem;
+      color: var(--highlight);
+    }
+
+    select {
+      width: 100%;
+      padding: 1.2rem 1rem 0.8rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      background-color: white;
+      color: #333;
+      appearance: none;
+      transition: all 0.3s ease;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--highlight);
+    }
+
+    button {
+      background-color: var(--dark-accent);
+      color: white;
+      border: none;
+      padding: 1rem;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 1.5rem;
+      letter-spacing: 0.5px;
+      box-shadow: var(--soft-shadow);
+    }
+
+    button:hover {
+      background-color: var(--highlight);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .alert-error {
+      color: #c62828;
+      border-left: 4px solid #ef5350;
+    }
+
+    .alert-success {
+      color: #2e7d32;
+      border-left: 4px solid #66bb6a;
+    }
+
+    .register-link {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #7f8c8d;
+    }
+
+    .register-link a {
+      color: var(--highlight);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .register-link a:hover {
+      color: var(--dark-accent);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Welcome Back</h1>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="POST" action="{% url 'users:login' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <input type="email" id="email" name="email" required placeholder=" ">
+        <label for="email">Email Address</label>
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" name="password" required placeholder=" ">
+        <label for="password">Password</label>
+      </div>
+      <div class="form-group">
+        <select name="user_type" required>
+          <option value="Client">Client</option>
+          <option value="Venue Owner">Venue Owner</option>
+        </select>
+      </div>
+      <button type="submit">Continue</button>
+    </form>
+
+    <p class="register-link">New to VenueBooker? <a href="{% url 'users:register' %}">Create account</a></p>
+  </div>
+</body>
+</html>

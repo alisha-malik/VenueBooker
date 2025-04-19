@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create New Venue | VenueBooker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f7f7;
+            padding: 2rem;
+        }
+
+        .form-container {
+            max-width: 700px;
+            margin: auto;
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        input.error-field, select.error-field, textarea.error-field {
+            border-color: red;
+        }
+
+        .category-buttons label {
+            display: inline-block;
+            background-color: #ecf0f1;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0.5rem 0 0;
+            cursor: pointer;
+        }
+
+        .category-buttons input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        .submit-group {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #34495e;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            text-decoration: none;
+            color: #555;
+        }
+
+        .error {
+            color: red;
+            margin-top: 0.25rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <h1>Create New Venue</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="name">Venue Name</label>
+        <input type="text" name="name" id="name" value="{{ field_values.name|default:'' }}" class="{% if field_errors.name %}error-field{% endif %}">
+        {% if field_errors.name %}<div class="error">{{ field_errors.name }}</div>{% endif %}
+
+        <label for="image">Venue Image (JPG, PNG only)</label>
+        <input type="file" name="image" id="image" accept=".jpg,.jpeg,.png" onchange="previewImage(event)" class="{% if field_errors.image %}error-field{% endif %}">
+        {% if field_errors.image %}<div class="error">{{ field_errors.image }}</div>{% endif %}
+        <div id="image-preview" style="margin-top: 1rem;"></div>
+
+        <label for="description">Short Description</label>
+        <textarea name="description" id="description" rows="3" class="{% if field_errors.description %}error-field{% endif %}">{{ field_values.description|default:'' }}</textarea>
+        {% if field_errors.description %}<div class="error">{{ field_errors.description }}</div>{% endif %}
+
+        <label for="capacity">Capacity</label>
+        <input type="number" name="capacity" id="capacity" min="1" value="{{ field_values.capacity|default:'' }}" class="{% if field_errors.capacity %}error-field{% endif %}">
+        {% if field_errors.capacity %}<div class="error">{{ field_errors.capacity }}</div>{% endif %}
+
+        <label for="availability">Availability</label>
+        <select name="availability_type" id="availability" onchange="toggleSeasonalOptions()">
+            <option value="Full-Year" {% if field_values.availability_type == "Full-Year" %}selected{% endif %}>Full-Year</option>
+            <option value="Seasonal" {% if field_values.availability_type == "Seasonal" %}selected{% endif %}>Seasonal</option>
+        </select>
+
+        <div id="seasonal-categories" style="display:none; margin-top:1rem;">
+            <label>Select Seasonal Categories</label>
+            <div class="category-buttons">
+                {% for season in seasons %}
+                    <label>
+                        <input type="checkbox" name="categories" value="{{ season }}" {% if season in field_values.selected_categories %}checked{% endif %}>
+                        {{ season }}
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <label>Select Venue Categories</label>
+        <div class="category-buttons">
+            {% for c in categories %}
+                <label>
+                    <input type="checkbox" name="categories" value="{{ c }}" {% if c in field_values.selected_categories %}checked{% endif %}>
+                    {{ c }}
+                </label>
+            {% endfor %}
+        </div>
+
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="Active" {% if field_values.status == 'Active' %}selected{% endif %}>Active</option>
+            <option value="Inactive" {% if field_values.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+            <option value="Under Maintenance" {% if field_values.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+        </select>
+
+        <label for="rate">Hourly Rate ($)</label>
+        <input type="number" step="0.01" name="rate" id="rate" value="{{ field_values.rate|default:'' }}" class="{% if field_errors.rate %}error-field{% endif %}">
+        {% if field_errors.rate %}<div class="error">{{ field_errors.rate }}</div>{% endif %}
+
+        <label for="street">Street</label>
+        <input type="text" name="street" id="street" value="{{ field_values.street|default:'' }}" class="{% if field_errors.street %}error-field{% endif %}">
+        {% if field_errors.street %}<div class="error">{{ field_errors.street }}</div>{% endif %}
+
+        <label for="city">City</label>
+        <input type="text" name="city" id="city" value="{{ field_values.city|default:'' }}" class="{% if field_errors.city %}error-field{% endif %}">
+        {% if field_errors.city %}<div class="error">{{ field_errors.city }}</div>{% endif %}
+
+        <label for="province">Province</label>
+        <select name="province" id="province" class="{% if field_errors.province %}error-field{% endif %}">
+            {% for p in provinces %}
+                <option value="{{ p }}" {% if field_values.province == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+        </select>
+        {% if field_errors.province %}<div class="error">{{ field_errors.province }}</div>{% endif %}
+
+        <label for="postal_code">Postal Code</label>
+        <input type="text" name="postal_code" id="postal_code" value="{{ field_values.postal_code|default:'' }}" class="{% if field_errors.postal_code %}error-field{% endif %}">
+        {% if field_errors.postal_code %}<div class="error">{{ field_errors.postal_code }}</div>{% endif %}
+
+        <div class="submit-group">
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+
+    <a href="{% url 'users:vendor_dashboard' %}" class="back-link">← Cancel</a>
+</div>
+
+<script>
+    function toggleSeasonalOptions() {
+        const availability = document.getElementById('availability').value;
+        const seasonalSection = document.getElementById('seasonal-categories');
+        seasonalSection.style.display = availability === 'Seasonal' ? 'block' : 'none';
+    }
+
+    function previewImage(event) {
+        const previewDiv = document.getElementById('image-preview');
+        const file = event.target.files[0];
+        previewDiv.innerHTML = '';
+        if (file) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '200px';
+            img.onload = () => URL.revokeObjectURL(img.src);
+            previewDiv.appendChild(img);
+        }
+    }
+</script>
+</body>
+</html>
