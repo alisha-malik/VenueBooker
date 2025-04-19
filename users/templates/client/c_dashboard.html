@@ -12,39 +12,23 @@
             padding: 2rem;
             position: relative;
         }
-
         h1, h2, h3 {
             color: #2c3e50;
         }
-
         .dashboard-header {
             margin-bottom: 2rem;
         }
-
         .profile-icon {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1.8rem;
-            text-decoration: none;
-            color: #2c3e50;
-            background-color: #eaeaea;
-            padding: 0.5rem 0.8rem;
-            border-radius: 50%;
-            transition: background-color 0.2s;
+            position: absolute; top: 20px; right: 20px;
+            font-size: 1.8rem; text-decoration: none;
+            color: #2c3e50; background-color: #eaeaea;
+            padding: 0.5rem 0.8rem; border-radius: 50%;
         }
-
-        .profile-icon:hover {
-            background-color: #ccc;
-        }
-
-        /* Navigation Tabs */
         .dashboard-nav {
             display: flex;
             margin-bottom: 2rem;
             border-bottom: 1px solid #ddd;
         }
-
         .nav-tab {
             padding: 0.8rem 1.5rem;
             margin-right: 0.5rem;
@@ -55,50 +39,40 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-
         .nav-tab.active {
             background-color: white;
             border-bottom: 1px solid white;
             margin-bottom: -1px;
             font-weight: bold;
         }
-
         .nav-tab:hover:not(.active) {
             background-color: #e0e0e0;
         }
-
-        /* Tab Content */
         .tab-content {
             display: none;
         }
-
         .tab-content.active {
             display: block;
         }
-
-        /* Venue Grid */
         .venue-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1.5rem;
         }
-
         .venue-card {
             background-color: white;
             padding: 1.5rem;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s ease;
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
+            transition: transform 0.2s ease;
         }
-
         .venue-card:hover {
             transform: scale(1.03);
         }
-
         .venue-card img {
             width: 100%;
             height: 160px;
@@ -106,27 +80,22 @@
             border-radius: 8px;
             margin-bottom: 1rem;
         }
-
         .venue-card h3 {
             margin-top: 0;
             color: #34495e;
         }
-
         .venue-card .meta {
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
-
         .venue-card .meta strong {
             color: #2c3e50;
         }
-
         .venue-card .tags {
             margin-top: 0.5rem;
             font-size: 0.85rem;
             color: #666;
         }
-
         .empty-state {
             text-align: center;
             padding: 2rem;
@@ -134,12 +103,6 @@
             border-radius: 10px;
             margin-bottom: 1.5rem;
         }
-
-        .empty-state p {
-            color: #666;
-            margin-bottom: 1rem;
-        }
-
         .primary-btn {
             display: inline-block;
             background-color: #3498db;
@@ -150,210 +113,154 @@
             font-weight: bold;
             transition: background-color 0.2s;
         }
-
         .primary-btn:hover {
             background-color: #2980b9;
-        }
-
-        .logout {
-            margin-top: 2rem;
-            display: inline-block;
-            color: #555;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            background-color: #eee;
-            transition: background-color 0.2s;
-        }
-
-        .logout:hover {
-            background-color: #ddd;
-        }
-
-        /* Booking History Tables */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 2rem;
-        }
-
-        .data-table th, .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .data-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-
-        .data-table tr:hover {
-            background-color: #f5f5f5;
-        }
-
-        /* Messages */
-        .message-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .message-item {
-            background-color: white;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .message-sender {
-            font-weight: bold;
-        }
-
-        .message-date {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .message-preview {
-            color: #444;
         }
     </style>
 </head>
 <body>
-    <!-- Profile icon in top-right corner -->
-    <a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
+<a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
+<div class="dashboard-header">
+    <h1>Welcome to Your Client Dashboard</h1>
+    <p>Browse and book your perfect venue!</p>
+</div>
 
-    <div class="dashboard-header">
-        <h1>Welcome to Your Client Dashboard</h1>
-        <p>Hello, {{ client_name }}!</p>
+<div class="dashboard-nav">
+    <div class="nav-tab active" onclick="showTab('venues')">Available Venues</div>
+</div>
+
+<div id="venues" class="tab-content active">
+    <h2>Available Venues</h2>
+
+    <button onclick="document.getElementById('filterModal').style.display = 'flex'">Open Filters</button>
+
+    <div class="filter-modal" id="filterModal">
+        <div class="modal-content">
+            <form method="get">
+    <button type="button" class="modal-close" onclick="document.getElementById('filterModal').style.display='none'">&times;</button>
+
+    <label for="availability">Availability</label>
+    <select name="availability_type" id="availability" onchange="toggleSeasonalOptions()">
+        <option value="Full-Year" {% if field_values.availability_type == "Full-Year" %}selected{% endif %}>Full-Year</option>
+        <option value="Seasonal" {% if field_values.availability_type == "Seasonal" %}selected{% endif %}>Seasonal</option>
+    </select>
+
+    <div id="seasonal-categories" style="display:none; margin-top:1rem;">
+        <label>Select Seasonal Categories</label>
+        <div class="category-buttons">
+            {% for season in seasons %}
+                <label>
+                    <input type="checkbox" name="categories" value="{{ season }}" 
+                           {% if season in field_values.selected_categories %}checked{% endif %}>
+                    {{ season }}
+                </label>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="dashboard-nav">
-        <div class="nav-tab active" onclick="showTab('venues')">Browse Venues</div>
-        <div class="nav-tab" onclick="showTab('bookings')">My Bookings</div>
-        <div class="nav-tab" onclick="showTab('messages')">Messages</div>
+    <label>Select Venue Categories</label>
+    <div class="category-buttons">
+        {% for c in categories %}
+            <label>
+                <input type="checkbox" name="categories" value="{{ c }}" 
+                       {% if c in field_values.selected_categories %}checked{% endif %}>
+                {{ c }}
+            </label>
+        {% endfor %}
     </div>
 
-    <!-- Venues Tab (Default Active) -->
-    <div id="venues" class="tab-content active">
-        <h2>Available Venues</h2>
+    <label for="status">Status</label>
+    <select id="status" name="status">
+        <option value="Active" {% if field_values.status == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Inactive" {% if field_values.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+        <option value="Under Maintenance" {% if field_values.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+    </select>
 
-        {% if venues %}
-            <div class="venue-grid">
-                {% for venue in venues %}
-                    <a href="{% url 'users:view_venue' venue.id %}" class="venue-card">
-                        {% if venue.image_url %}
-                            <img src="{{ venue.image_url }}" alt="{{ venue.name }}">
-                        {% else %}
-                            <img src="{% static 'default-placeholder.png' %}" alt="No image available">
-                        {% endif %}
-                        <h3>{{ venue.name }}</h3>
-                        <p>{{ venue.description|truncatewords:20 }}</p>
+    <label for="rate">Hourly Rate ($)</label>
+    <input type="number" step="0.01" name="rate" id="rate" value="{{ field_values.rate }}" 
+           class="{% if field_errors.rate %}error-field{% endif %}">
+    {% if field_errors.rate %}<div class="error">{{ field_errors.rate }}</div>{% endif %}
 
-                        <div class="meta">
-                            <p><strong>Rate:</strong> ${{ venue.price }}</p>
-                            <p><strong>Capacity:</strong> {{ venue.capacity }}</p>
-                            <p><strong>Availability:</strong> {{ venue.availability }}</p>
-                        </div>
+    <label for="street">Street</label>
+    <input type="text" name="street" id="street" value="{{ field_values.street }}" 
+           class="{% if field_errors.street %}error-field{% endif %}">
+    {% if field_errors.street %}<div class="error">{{ field_errors.street }}</div>{% endif %}
 
-                        {% if venue.categories %}
-                            <div class="tags">
-                                <strong>Categories:</strong> {{ venue.categories|join:", " }}
-                            </div>
-                        {% endif %}
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <p>No venues available at the moment.</p>
-            </div>
-        {% endif %}
+    <label for="city">City</label>
+    <input type="text" name="city" id="city" value="{{ field_values.city }}" 
+           class="{% if field_errors.city %}error-field{% endif %}">
+    {% if field_errors.city %}<div class="error">{{ field_errors.city }}</div>{% endif %}
+
+    <label for="province">Province</label>
+    <select name="province" id="province" class="{% if field_errors.province %}error-field{% endif %}">
+        <option value="">All Provinces</option>
+        {% for p in provinces %}
+            <option value="{{ p }}" {% if field_values.province == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+    </select>
+    {% if field_errors.province %}<div class="error">{{ field_errors.province }}</div>{% endif %}
+
+    <button type="submit" style="margin-top: 1rem;">Apply Filters</button>
+</form>
+        </div>
     </div>
 
-    <!-- Booking History Tab -->
-    <div id="bookings" class="tab-content">
-        <h2>My Booking History</h2>
-        
-        {% if bookings %}
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Venue</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                        <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for booking in bookings %}
-                    <tr>
-                        <td>{{ booking.venue_name }}</td>
-                        <td>{{ booking.date }}</td>
-                        <td>{{ booking.start_time }} - {{ booking.end_time }}</td>
-                        <td>{{ booking.status }}</td>
-                        <td>${{ booking.amount }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty-state">
-                <p>You have no bookings yet.</p>
-            </div>
-        {% endif %}
-    </div>
+    {% if has_venues %}
+        <div class="venue-grid">
+            {% for venue in venues %}
+                <div class="venue-card">
+                    {% if venue.image_url %}
+                        <img src="{{ venue.image_url }}" alt="{{ venue.name }}">
+                    {% else %}
+                        <img src="{% static 'default-placeholder.png' %}" alt="No image available">
+                    {% endif %}
+                    <h3>{{ venue.name }}</h3>
+                    <p>{{ venue.description|truncatewords:20 }}</p>
 
-    <!-- Messages Tab -->
-    <div id="messages" class="tab-content">
-        <h2>Messages</h2>
-        
-        {% if messages %}
-            <ul class="message-list">
-                {% for message in messages %}
-                <li class="message-item">
-                    <div class="message-header">
-                        <span class="message-sender">{{ message.sender }}</span>
-                        <span class="message-date">{{ message.date }}</span>
+                    <div class="meta">
+                        <p><strong>Status:</strong> {{ venue.status }}</p>
+                        <p><strong>Rate:</strong> ${{ venue.price }}</p>
+                        <p><strong>Capacity:</strong> {{ venue.capacity }}</p>
+                        <p><strong>Availability:</strong> {{ venue.availability }}</p>
                     </div>
-                    <div class="message-preview">{{ message.preview }}...</div>
-                </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <div class="empty-state">
-                <p>No messages yet.</p>
-            </div>
-        {% endif %}
-    </div>
 
-    <a href="{% url 'users:logout' %}" class="logout">Logout</a>
+                    {% if venue.categories %}
+                        <div class="tags">
+                            <strong>Categories:</strong> {{ venue.categories|join:", " }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>No venues are currently available.</p>
+            <a href="#" class="primary-btn">Check Again Later</a>
+        </div>
+    {% endif %}
+</div>
 
-    <script>
-        function showTab(tabId) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Deactivate all tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Activate selected tab
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+<script>
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+    function toggleSeasonalOptions() {
+        const select = document.getElementById("availability");
+        const seasonal = document.getElementById("seasonal-categories");
+        if (select.value === "Seasonal") {
+            seasonal.style.display = "block";
+        } else {
+            seasonal.style.display = "none";
         }
-    </script>
+    }
+    document.addEventListener("DOMContentLoaded", toggleSeasonalOptions);
+    window.onclick = function(event) {
+        const modal = document.getElementById('filterModal');
+        if (event.target === modal) modal.style.display = "none";
+    }
+</script>
 </body>
 </html>

@@ -90,7 +90,7 @@ def user_login(request):
                         request.session['user_type'] = actual_type
 
                         if actual_type == "Client":
-                            return render(request, 'client/c_dashboard.html')
+                            return redirect('users:client_dashboard')
                         else:
                             return redirect('users:vendor_dashboard')
 
