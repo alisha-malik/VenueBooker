@@ -5,96 +5,345 @@
     <meta charset="UTF-8">
     <title>Client Dashboard | VenueBooker</title>
     <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --text-color: #2c3e50;
+            --light-bg: #f7f7f7;
+            --border-color: #e0e0e0;
+        }
+
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f7f7f7;
+            background-color: var(--light-bg);
             margin: 0;
-            padding: 2rem;
-            position: relative;
+            padding: 0;
+            color: var(--text-color);
         }
-        h1, h2, h3 {
-            color: #2c3e50;
-        }
-        .dashboard-header {
-            margin-bottom: 2rem;
-        }
-        .profile-icon {
-            position: absolute; top: 20px; right: 20px;
-            font-size: 1.8rem; text-decoration: none;
-            color: #2c3e50; background-color: #eaeaea;
-            padding: 0.5rem 0.8rem; border-radius: 50%;
-        }
-        .dashboard-nav {
-            display: flex;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #ddd;
-        }
-        .nav-tab {
-            padding: 0.8rem 1.5rem;
-            margin-right: 0.5rem;
-            background-color: #eee;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .nav-tab.active {
+
+        /* Navigation Bar */
+        .navbar {
             background-color: white;
-            border-bottom: 1px solid white;
-            margin-bottom: -1px;
-            font-weight: bold;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .nav-tab:hover:not(.active) {
-            background-color: #e0e0e0;
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-decoration: none;
         }
-        .tab-content {
-            display: none;
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
-        .tab-content.active {
-            display: block;
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.2rem;
         }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Search and Filter Section */
+        .search-filter-section {
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .search-container {
+            background: white;
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin: 16px 0;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .search-input-group {
+            position: relative;
+            flex: 1;
+            min-width: 100px;
+            max-width: calc(100% - 320px);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px 0 32px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            text-overflow: ellipsis;
+        }
+
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .search-button,
+        .filter-button {
+            height: 40px;
+            padding: 0 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .search-button {
+            background-color: #4a90e2;
+            color: white;
+        }
+
+        .filter-button {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .clear-all {
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 16px;
+            color: #6366f1;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Hover states */
+        .search-button:hover {
+            background-color: #357abd;
+        }
+
+        .filter-button:hover {
+            background-color: #059669;
+        }
+
+        .clear-all:hover {
+            background-color: #f3f4f6;
+        }
+
+        @media (max-width: 640px) {
+            .search-form {
+                flex-wrap: wrap;
+            }
+
+            .search-input-group {
+                max-width: 100%;
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .button-group {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        /* Active filters styling */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .filter-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            background-color: #f1f3f4;
+            color: #5f6368;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .tag-remove {
+            background: none;
+            border: none;
+            color: #5f6368;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tag-remove:hover {
+            color: #d93025;
+        }
+
+        /* Venue Grid */
         .venue-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 300px));
+            gap: 2rem;
+            justify-content: center;
         }
+
         .venue-card {
             background-color: white;
-            padding: 1.5rem;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            height: 480px;
+            position: relative;
         }
         .venue-card:hover {
-            transform: scale(1.03);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
         }
         .venue-card img {
             width: 100%;
-            height: 160px;
+            height: 200px;
             object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+        }
+        .venue-card-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
         .venue-card h3 {
-            margin-top: 0;
-            color: #34495e;
-        }
-        .venue-card .meta {
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-        .venue-card .meta strong {
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
             color: #2c3e50;
+            line-height: 1.3;
+            height: 2.6em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
-        .venue-card .tags {
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
+        .venue-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .meta-label {
+            font-size: 0.7rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .meta-value {
+            font-size: 0.9rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        .venue-categories {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .category-tag {
+            background-color: #f0f7ff;
+            color: #3498db;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            max-width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .venue-status {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: white;
+        }
+        .status-Active {
+            background-color: #27ae60;
+        }
+        .status-Inactive {
+            background-color: #95a5a6;
+        }
+        .status-Under-Maintenance {
+            background-color: #f1c40f;
+            color: #2c3e50;
         }
         .empty-state {
             text-align: center;
@@ -116,151 +365,507 @@
         .primary-btn:hover {
             background-color: #2980b9;
         }
+        .filter-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .modal-close:hover {
+            background-color: #f3f4f6;
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .filter-section h3 {
+            margin: 0 0 1.5rem 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+        .filter-group {
+            margin-bottom: 1.5rem;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+        .filter-group select,
+        .filter-group input[type="text"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        .price-range {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .price-slider {
+            flex: 1;
+        }
+        .categories-section {
+            margin-bottom: 2rem;
+        }
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .category-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .filter-actions {
+            margin-top: 24px;
+        }
+        .apply-filters {
+            width: 100%;
+            height: 40px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .apply-filters:hover {
+            background-color: #357abd;
+        }
+        @media (max-width: 768px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-actions {
+                flex-direction: column;
+            }
+        }
+        .sort-dropdown {
+            position: relative;
+        }
+        .sort-button {
+            height: 40px;
+            width: 40px;
+            padding: 0;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            color: #6b7280;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .sort-button:hover {
+            background-color: #f3f4f6;
+        }
+        .sort-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            z-index: 1000;
+        }
+        .sort-menu.show {
+            display: block;
+        }
+        .sort-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            color: #374151;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .sort-option:hover {
+            background-color: #f3f4f6;
+        }
+        .sort-option i {
+            width: 16px;
+        }
+        .sort-option:not(:last-child) {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .sort-button.active {
+            background-color: #f3f4f6;
+            border-color: #d1d5db;
+        }
     </style>
 </head>
 <body>
-<a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
-<div class="dashboard-header">
-    <h1>Welcome to Your Client Dashboard</h1>
-    <p>Browse and book your perfect venue!</p>
-</div>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="{% url 'users:client_dashboard' %}" class="navbar-brand">VenueBooker</a>
+        <div class="navbar-right">
+            <a href="{% url 'users:profile' %}" class="profile-icon">👤</a>
+        </div>
+    </nav>
 
-<div class="dashboard-nav">
-    <div class="nav-tab active" onclick="showTab('venues')">Available Venues</div>
-</div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Search and Filter Section -->
+        <div class="search-filter-section">
+            <div class="search-container">
+                <form method="get" class="search-form">
+                    <div class="search-input-group">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" name="venue_name" placeholder="Search venues..." value="{{ request.GET.venue_name|default:'' }}" class="search-input">
+                    </div>
+                    <div class="button-group">
+                        {% if request.GET.venue_name or request.GET.categories or request.GET.rate or request.GET.province or request.GET.city or request.GET.sort %}
+                            <a href="{% url 'users:client_dashboard' %}" class="clear-all">Clear All</a>
+                        {% endif %}
+                        <button type="submit" class="search-button">Search</button>
+                        <button type="button" class="filter-button" onclick="openFilterModal()">
+                            Filters
+                        </button>
+                        <div class="sort-dropdown">
+                            <button type="button" class="sort-button" onclick="toggleSortMenu()">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div class="sort-menu" id="sortMenu">
+                                <a href="?{% if request.GET.venue_name %}venue_name={{ request.GET.venue_name }}&{% endif %}sort=popularity" class="sort-option">
+                                    <i class="fas fa-fire"></i>
+                                    Most Popular
+                                </a>
+                                <a href="?{% if request.GET.venue_name %}venue_name={{ request.GET.venue_name }}&{% endif %}sort=price_low" class="sort-option">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Price: Low to High
+                                </a>
+                                <a href="?{% if request.GET.venue_name %}venue_name={{ request.GET.venue_name }}&{% endif %}sort=price_high" class="sort-option">
+                                    <i class="fas fa-dollar-sign"></i><i class="fas fa-dollar-sign"></i>
+                                    Price: High to Low
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-<div id="venues" class="tab-content active">
-    <h2>Available Venues</h2>
+        <!-- Venue Grid -->
+        {% if has_venues %}
+            <div class="venue-grid">
+                {% for venue in venues %}
+                    <a href="{% url 'users:venue_detail' venue.id %}" class="venue-card">
+                        <div class="venue-status status-{{ venue.status|cut:' ' }}">
+                            {{ venue.status }}
+                        </div>
+                        {% if venue.image_url %}
+                            <img src="{{ venue.image_url }}" alt="{{ venue.name }}">
+                        {% else %}
+                            <img src="{% static 'default-placeholder.png' %}" alt="No image available">
+                        {% endif %}
+                        <div class="venue-card-content">
+                            <h3>{{ venue.name }}</h3>
+                            
+                            <div class="venue-meta">
+                                <div class="meta-item">
+                                    <span class="meta-label">Rate</span>
+                                    <span class="meta-value">${{ venue.price }}/hr</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Capacity</span>
+                                    <span class="meta-value">{{ venue.capacity }} people</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Location</span>
+                                    <span class="meta-value">{{ venue.city }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Availability</span>
+                                    <span class="meta-value">{{ venue.availability }}</span>
+                                </div>
+                            </div>
 
-    <button onclick="document.getElementById('filterModal').style.display = 'flex'">Open Filters</button>
+                            {% if venue.categories %}
+                                <div class="venue-categories">
+                                    <div class="category-tags">
+                                        {% for category in venue.categories|slice:":2" %}
+                                            <span class="category-tag">{{ category }}</span>
+                                        {% endfor %}
+                                        {% if venue.categories|length > 2 %}
+                                            <span class="category-tag">+{{ venue.categories|length|add:"-2" }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>No venues match your selected filters.</p>
+                <a href="{% url 'users:client_dashboard' %}" class="primary-btn">View All Venues</a>
+            </div>
+        {% endif %}
+    </div>
 
-    <div class="filter-modal" id="filterModal">
+    <!-- Filter Modal -->
+    <div id="filterModal" class="filter-modal">
         <div class="modal-content">
+            <div class="modal-header">
+                <h2>Filter Venues</h2>
+                <button type="button" class="modal-close" onclick="document.getElementById('filterModal').style.display='none'">&times;</button>
+            </div>
+            
             <form method="get">
-    <button type="button" class="modal-close" onclick="document.getElementById('filterModal').style.display='none'">&times;</button>
+                <div class="filter-grid">
+                    <!-- Left Column -->
+                    <div class="filter-section">
+                        <h3>Venue Details</h3>
+                        
+                        <div class="filter-group">
+                            <label for="status">Status</label>
+                            <select name="status" id="status">
+                                <option value="">All Statuses</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
+                            </select>
+                        </div>
 
-    <label for="availability">Availability</label>
-    <select name="availability_type" id="availability" onchange="toggleSeasonalOptions()">
-        <option value="Full-Year" {% if field_values.availability_type == "Full-Year" %}selected{% endif %}>Full-Year</option>
-        <option value="Seasonal" {% if field_values.availability_type == "Seasonal" %}selected{% endif %}>Seasonal</option>
-    </select>
+                        <div class="filter-group">
+                            <h4>Price Range</h4>
+                            <div class="price-range">
+                                <span>$0</span>
+                                <input type="range" name="rate" min="0" max="500" value="{{ field_values.rate|default:200 }}" 
+                                       class="price-slider" id="priceSlider">
+                                <span>$<span id="priceValue">200</span>/hr</span>
+                            </div>
+                        </div>
 
-    <div id="seasonal-categories" style="display:none; margin-top:1rem;">
-        <label>Select Seasonal Categories</label>
-        <div class="category-buttons">
-            {% for season in seasons %}
-                <label>
-                    <input type="checkbox" name="categories" value="{{ season }}" 
-                           {% if season in field_values.selected_categories %}checked{% endif %}>
-                    {{ season }}
-                </label>
-            {% endfor %}
-        </div>
-    </div>
-
-    <label>Select Venue Categories</label>
-    <div class="category-buttons">
-        {% for c in categories %}
-            <label>
-                <input type="checkbox" name="categories" value="{{ c }}" 
-                       {% if c in field_values.selected_categories %}checked{% endif %}>
-                {{ c }}
-            </label>
-        {% endfor %}
-    </div>
-
-    <label for="status">Status</label>
-    <select id="status" name="status">
-        <option value="Active" {% if field_values.status == 'Active' %}selected{% endif %}>Active</option>
-        <option value="Inactive" {% if field_values.status == 'Inactive' %}selected{% endif %}>Inactive</option>
-        <option value="Under Maintenance" {% if field_values.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
-    </select>
-
-    <label for="rate">Hourly Rate ($)</label>
-    <input type="number" step="0.01" name="rate" id="rate" value="{{ field_values.rate }}" 
-           class="{% if field_errors.rate %}error-field{% endif %}">
-    {% if field_errors.rate %}<div class="error">{{ field_errors.rate }}</div>{% endif %}
-
-    <label for="street">Street</label>
-    <input type="text" name="street" id="street" value="{{ field_values.street }}" 
-           class="{% if field_errors.street %}error-field{% endif %}">
-    {% if field_errors.street %}<div class="error">{{ field_errors.street }}</div>{% endif %}
-
-    <label for="city">City</label>
-    <input type="text" name="city" id="city" value="{{ field_values.city }}" 
-           class="{% if field_errors.city %}error-field{% endif %}">
-    {% if field_errors.city %}<div class="error">{{ field_errors.city }}</div>{% endif %}
-
-    <label for="province">Province</label>
-    <select name="province" id="province" class="{% if field_errors.province %}error-field{% endif %}">
-        <option value="">All Provinces</option>
-        {% for p in provinces %}
-            <option value="{{ p }}" {% if field_values.province == p %}selected{% endif %}>{{ p }}</option>
-        {% endfor %}
-    </select>
-    {% if field_errors.province %}<div class="error">{{ field_errors.province }}</div>{% endif %}
-
-    <button type="submit" style="margin-top: 1rem;">Apply Filters</button>
-</form>
-        </div>
-    </div>
-
-    {% if has_venues %}
-        <div class="venue-grid">
-            {% for venue in venues %}
-                <div class="venue-card">
-                    {% if venue.image_url %}
-                        <img src="{{ venue.image_url }}" alt="{{ venue.name }}">
-                    {% else %}
-                        <img src="{% static 'default-placeholder.png' %}" alt="No image available">
-                    {% endif %}
-                    <h3>{{ venue.name }}</h3>
-                    <p>{{ venue.description|truncatewords:20 }}</p>
-
-                    <div class="meta">
-                        <p><strong>Status:</strong> {{ venue.status }}</p>
-                        <p><strong>Rate:</strong> ${{ venue.price }}</p>
-                        <p><strong>Capacity:</strong> {{ venue.capacity }}</p>
-                        <p><strong>Availability:</strong> {{ venue.availability }}</p>
+                        <div class="filter-group">
+                            <label for="availability">Availability</label>
+                            <select name="availability_type" id="availability">
+                                <option value="">All Types</option>
+                                <option value="Full-Year">Full-Year</option>
+                                <option value="Seasonal">Seasonal</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {% if venue.categories %}
-                        <div class="tags">
-                            <strong>Categories:</strong> {{ venue.categories|join:", " }}
+                    <!-- Right Column -->
+                    <div class="filter-section">
+                        <h3>Location</h3>
+                        
+                        <div class="filter-group">
+                            <label for="province">Province</label>
+                            <select name="province" id="province">
+                                <option value="">All Provinces</option>
+                                {% for p in provinces %}
+                                    <option value="{{ p }}">{{ p }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="empty-state">
-            <p>No venues are currently available.</p>
-            <a href="#" class="primary-btn">Check Again Later</a>
-        </div>
-    {% endif %}
-</div>
 
-<script>
-    function showTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        event.target.classList.add('active');
-    }
-    function toggleSeasonalOptions() {
-        const select = document.getElementById("availability");
-        const seasonal = document.getElementById("seasonal-categories");
-        if (select.value === "Seasonal") {
-            seasonal.style.display = "block";
-        } else {
-            seasonal.style.display = "none";
+                        <div class="filter-group">
+                            <label for="city">City</label>
+                            <input type="text" name="city" id="city" placeholder="Enter city name">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="street">Street</label>
+                            <input type="text" name="street" id="street" placeholder="Enter street name">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Section -->
+                <div class="filter-section categories-section">
+                    <h3>Venue Categories</h3>
+                    <div class="categories-grid">
+                        {% for category in categories %}
+                            <label class="category-checkbox">
+                                <input type="checkbox" name="categories" value="{{ category }}"
+                                       {% if category in field_values.selected_categories %}checked{% endif %}>
+                                <span>{{ category }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="filter-actions">
+                    <button type="submit" class="apply-filters">Apply Filters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openFilterModal() {
+            const modal = document.getElementById('filterModal');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
-    }
-    document.addEventListener("DOMContentLoaded", toggleSeasonalOptions);
-    window.onclick = function(event) {
-        const modal = document.getElementById('filterModal');
-        if (event.target === modal) modal.style.display = "none";
-    }
-</script>
+
+        function clearFilter(type, value) {
+            let url = new URL(window.location.href);
+            let params = new URLSearchParams(url.search);
+            
+            switch(type) {
+                case 'venue_name':
+                    params.delete('venue_name');
+                    break;
+                case 'province':
+                    params.delete('province');
+                    break;
+                case 'category':
+                    let categories = params.getAll('categories');
+                    categories = categories.filter(category => category !== value);
+                    params.delete('categories');
+                    categories.forEach(category => params.append('categories', category));
+                    break;
+            }
+            
+            url.search = params.toString();
+            window.location.href = url.toString();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('filterModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function validateSearch() {
+            const searchInput = document.querySelector('input[name="venue_name"]');
+            const searchTerm = searchInput.value.trim();
+            
+            if (searchTerm === '') {
+                alert('Please enter a venue name to search');
+                return false;
+            }
+            return true;
+        }
+
+        // Update price display when slider moves
+        const priceSlider = document.getElementById('priceSlider');
+        const priceValue = document.getElementById('priceValue');
+
+        priceSlider.addEventListener('input', function() {
+            priceValue.textContent = this.value;
+        });
+
+        // Initialize with current value
+        document.addEventListener('DOMContentLoaded', function() {
+            priceValue.textContent = priceSlider.value;
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('filterModal');
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+
+            // Close modal when pressing Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+
+        function toggleSortMenu() {
+            const menu = document.getElementById('sortMenu');
+            const button = document.querySelector('.sort-button');
+            menu.classList.toggle('show');
+            button.classList.toggle('active');
+
+            // Close menu when clicking outside
+            document.addEventListener('click', function closeMenu(e) {
+                if (!e.target.closest('.sort-dropdown')) {
+                    menu.classList.remove('show');
+                    button.classList.remove('active');
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }
+
+        // Close menu when pressing Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const menu = document.getElementById('sortMenu');
+                const button = document.querySelector('.sort-button');
+                menu.classList.remove('show');
+                button.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
+

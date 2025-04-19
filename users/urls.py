@@ -11,6 +11,7 @@ urlpatterns = [
     path('forgot-password/', views.forgot_password, name='forgot_password'),
 
     path('client/dashboard/', client_views.client_dashboard, name='client_dashboard'),
+    path('client/venue/<int:venue_id>/', client_views.venue_detail, name='venue_detail'),
 
     path('vendor/dashboard/', vendor_views.vendor_dashboard, name='vendor_dashboard'),
     path('vendor/posting', vendor_views.create_posting, name="posting"),

@@ -75,16 +75,13 @@ def client_dashboard(request):
     try:
         # Get filter parameters from the request
         filters = {
+            'venue_name': request.GET.get('venue_name', ''),
             'province': request.GET.get('province', ''),
             'city': request.GET.get('city', ''),
             'rate': request.GET.get('rate', ''),
-            'street': request.GET.get('street', ''),
-            'status': request.GET.get('status', 'Active'),  # Default to 'Active'
-            'availability_type': request.GET.get('availability_type', 'Full-Year'),  # Default to 'Full-Year'
-            'selected_categories': request.GET.getlist('categories', []),  # This returns a list of all selected categories
-            'min_price': request.GET.get('min_price', ''),
-            'max_price': request.GET.get('max_price', ''),
-            'capacity': request.GET.get('capacity', '')
+            'status': request.GET.get('status', ''),
+            'availability_type': request.GET.get('availability_type', ''),
+            'selected_categories': request.GET.getlist('categories', []),
         }
 
         base_query = """
@@ -97,16 +94,16 @@ def client_dashboard(request):
         """
         params = []
 
-        # Dynamically add filters
+        # Only add filters if they are actually set
+        if filters['venue_name']:
+            base_query += " AND v.name LIKE %s"
+            params.append(f"%{filters['venue_name']}%")
         if filters['province']:
             base_query += " AND v.province = %s"
             params.append(filters['province'])
         if filters['city']:
             base_query += " AND v.city LIKE %s"
             params.append(f"%{filters['city']}%")
-        if filters['street']:
-            base_query += " AND v.street LIKE %s"
-            params.append(f"%{filters['street']}%")
         if filters['rate']:
             base_query += " AND v.rate <= %s"
             params.append(filters['rate'])
@@ -116,10 +113,7 @@ def client_dashboard(request):
         if filters['availability_type']:
             base_query += " AND vc.availability_type = %s"
             params.append(filters['availability_type'])
-        
-        # Category filtering - only apply if categories are selected
         if filters['selected_categories']:
-            # Create a dynamic IN clause for the categories
             placeholders = ', '.join(['%s'] * len(filters['selected_categories']))
             base_query += f" AND vc.category IN ({placeholders})"
             params.extend(filters['selected_categories'])
@@ -162,8 +156,8 @@ def client_dashboard(request):
 
         # Get all categories for filter options
         categories = []
-        seasons = ['Spring', 'Summer', 'Fall', 'Winter']  # Common seasons
-        provinces = ['Ontario', 'Quebec', 'British Columbia', 'Alberta']  # Add all provinces
+        seasons = ['Spring', 'Summer', 'Fall', 'Winter']
+        provinces = ['AB','BC','MB','NB','NL','NS','NT','NU','ON','PE','QC','SK','YT']
         
         with connection.cursor() as cursor:
             cursor.execute("SELECT DISTINCT category FROM venue_category WHERE category NOT IN ('Spring', 'Summer', 'Fall', 'Winter')")
@@ -184,3 +178,65 @@ def client_dashboard(request):
         print(f"[DEBUG] client_dashboard error → {e}", flush=True)
         messages.error(request, "Could not load dashboard.")
         return redirect('users:login')
+
+def venue_detail(request, venue_id):
+    user_id = request.session.get('user_id')
+    
+    if not user_id:
+        messages.error(request, "You must be logged in to view this page.")
+        return redirect('users:login')
+        
+    try:
+        with connection.cursor() as cursor:
+            # Updated the table name from 'user' to 'users'
+            cursor.execute("""
+                SELECT v.venue_id, v.name, v.rate, v.status, v.image_url, v.description,
+                    v.capacity, v.street, v.city, v.province, v.postal_code,
+                    GROUP_CONCAT(DISTINCT vc.category) as categories,
+                    vc.availability_type,
+                    u.first_name, u.last_name, u.email, u.phone
+                FROM venue v
+                LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
+                LEFT JOIN users u ON v.user_id = u.user_id
+                WHERE v.venue_id = %s
+                GROUP BY v.venue_id, vc.availability_type
+            """, [venue_id])
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                messages.error(request, "Venue not found.")
+                return redirect('users:client_dashboard')
+                
+            image_url = row[4]
+            if image_url and not image_url.startswith('/media/'):
+                image_url = f'/media/{image_url}'
+                image_url = request.build_absolute_uri(image_url)
+                
+            venue = {
+                'id': row[0],
+                'name': row[1],
+                'price': float(row[2]) if row[2] else 0.0,
+                'status': row[3],
+                'image_url': image_url,
+                'description': row[5],
+                'capacity': row[6],
+                'street': row[7],
+                'city': row[8],
+                'province': row[9],
+                'postal_code': row[10],
+                'categories': row[11].split(',') if row[11] else [],
+                'availability': row[12] or 'Full-Year',
+                'vendor_name': f"{row[13]} {row[14]}",
+                'vendor_email': row[15],
+                'vendor_phone': row[16]
+            }
+            
+            return render(request, 'client/venue_detail.html', {
+                'venue': venue
+            })
+            
+    except Exception as e:
+        print(f"[DEBUG] venue_detail error → {e}", flush=True)
+        messages.error(request, "Could not load venue details.")
+        return redirect('users:client_dashboard')
