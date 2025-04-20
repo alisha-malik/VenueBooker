@@ -6,16 +6,76 @@
         <div class="alert alert-{{ message.tags }}">{{ message }}</div>
       {% endfor %}
     {% endif %}
-  
-    <input type="text" name="first_name" placeholder="First Name" required><br>
-    <input type="text" name="last_name" placeholder="Last Name" required><br>
-    <input type="text" name="phone" placeholder="Phone (10 digits)" required><br>
-    <input type="email" name="email" placeholder="Email" required><br>
-    <select name="user_type" required>
-      <option value="Client">Client</option>
-      <option value="Vendor">Vendor</option>
-    </select><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button type="submit">Register</button>
-  </form>
+    <div class="register-container">
+      <h2>Create Your Account</h2>
+      <form method="post">
+          {% csrf_token %}
+          <input type="text" name="first_name" placeholder="First Name" required>
+          <input type="text" name="last_name" placeholder="Last Name" required>
+          <input type="tel" name="phone" placeholder="Phone (10 digits)" pattern="[0-9]{10}" required>
+          <input type="email" name="email" placeholder="Email" required>
+          <select name="account_type" required>
+              <option value="" disabled selected>Select Account Type</option>
+              <option value="Client">Client</option>
+              <option value="Vendor">Vendor</option>
+          </select>
+          <input type="password" name="password" placeholder="Password" required>
+          <button type="submit">Register</button>
+      </form>
+  </div>
+
+<style>
+  body {
+    background: #f7f9fb;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.register-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+}
+
+.register-container h2 {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+form input, form select {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+form button {
+    background-color: #3498db;
+    color: white;
+    padding: 0.8rem;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+form button:hover {
+    background-color: #2980b9;
+}
+
+</style>
   
