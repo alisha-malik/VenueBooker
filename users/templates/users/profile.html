@@ -3,32 +3,41 @@
 <head>
     <title>User Profile</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: #f4f6f9;
             margin: 0;
-            padding: 3rem;
+            padding: 3rem 1rem;
         }
 
         .profile-container {
             display: flex;
-            max-width: 800px;
+            flex-direction: row;
+            max-width: 850px;
             margin: 0 auto;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
             overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .profile-container:hover {
+            transform: translateY(-4px);
         }
 
         .profile-image {
             width: 40%;
-            background-color: #e0e0e0;
+            background-color: #ecf0f1;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 300px;
-            font-size: 1rem;
-            color: #888;
+            font-size: 2rem;
+            color: #7f8c8d;
+            font-weight: 600;
         }
 
         .profile-info {
@@ -38,45 +47,55 @@
 
         .profile-info h2 {
             margin-top: 0;
+            margin-bottom: 0.3rem;
             color: #2c3e50;
         }
 
+        .profile-info em {
+            font-size: 1rem;
+            color: #7f8c8d;
+        }
+
         .info-block {
-            margin-top: 1.5rem;
+            margin-top: 1.8rem;
         }
 
         .info-block p {
-            margin: 0.5rem 0;
+            margin: 0.7rem 0;
             font-size: 1.05rem;
             color: #34495e;
         }
 
         .label {
-            font-weight: bold;
+            font-weight: 600;
+            color: #2c3e50;
         }
 
         .btn {
             display: inline-block;
-            padding: 0.6rem 1.2rem;
+            padding: 0.65rem 1.4rem;
             background-color: #3498db;
             color: white;
             text-decoration: none;
             border-radius: 8px;
-            margin-top: 1.2rem;
+            margin-top: 2rem;
             margin-right: 1rem;
             transition: background-color 0.3s ease;
+            font-size: 0.95rem;
         }
 
         .btn:hover {
             background-color: #2980b9;
         }
 
-        .logout-link {
-            background-color: #e74c3c;
-        }
+        @media (max-width: 768px) {
+            .profile-container {
+                flex-direction: column;
+            }
 
-        .logout-link:hover {
-            background-color: #c0392b;
+            .profile-image, .profile-info {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -85,7 +104,7 @@
 <div class="profile-container">
     <!-- Left: Profile Image Placeholder -->
     <div class="profile-image">
-        Profile Image Placeholder
+        {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
     </div>
 
     <!-- Right: Profile Details -->
@@ -99,12 +118,10 @@
         </div>
 
         {% if user.user_type == "Vendor" %}
-            <a href="{% url 'users:vendor_dashboard' %}" class="btn">Vendor Dashboard</a>
+            <a href="{% url 'users:vendor_dashboard' %}" class="btn">Go to Vendor Dashboard</a>
         {% elif user.user_type == "Client" %}
-            <a href="{% url 'users:client_dashboard' %}" class="btn">Client Dashboard</a>
+            <a href="{% url 'users:client_dashboard' %}" class="btn">Go to Client Dashboard</a>
         {% endif %}
-
-        <a href="{% url 'users:logout' %}" class="btn logout-link">Logout</a>
     </div>
 </div>
 
