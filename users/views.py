@@ -4,6 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render
+
+@staff_member_required
+def admin_dashboard(request):
+    return render(request, 'users/admin_dashboard.html')
+
 
 def register(request):
     if request.method == 'POST':
