@@ -12,13 +12,15 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('forgot-password/', views.forgot_password, name='forgot_password'),
 
+    # Client URLs
     path('client/dashboard/', client_views.client_dashboard, name='client_dashboard'),
     path('client/venue/<int:venue_id>/', client_views.venue_detail, name='venue_detail'),
     path('client/venue/<int:venue_id>/book/', client_views.venue_booking, name='venue_booking'),
+    path('client/bookings/', client_views.view_bookings, name='view_bookings'),  # Add this line
 
+    # Vendor URLs
     path('vendor/dashboard/', vendor_views.vendor_dashboard, name='vendor_dashboard'),
     path('vendor/posting', vendor_views.create_posting, name="posting"),
     path('vendor/venue/<int:venue_id>/edit/', vendor_views.edit_venue, name='edit_venue'),
     path('vendor/venue/<int:venue_id>/delete/', vendor_views.delete_venue, name='delete_posting'),
 ]
- 

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <title>My Bookings | VenueBooker</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --text-color: #2c3e50;
+            --light-bg: #f7f7f7;
+            --border-color: #e0e0e0;
+            --success-color: #27ae60;
+            --muted-color: #95a5a6;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.2rem;
+        }
+
+        .view-bookings-link {
+            padding: 0.5rem 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .view-bookings-link:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .bookings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .bookings-title {
+            font-size: 1.8rem;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .bookings-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            color: var(--text-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .booking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .booking-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .booking-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .booking-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+
+        .booking-content {
+            padding: 1.5rem;
+        }
+
+        .booking-venue {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            color: var(--text-color);
+        }
+
+        .booking-vendor {
+            color: var(--muted-color);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .booking-dates {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .date-group {
+            flex: 1;
+        }
+
+        .date-label {
+            font-size: 0.7rem;
+            color: var(--muted-color);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .date-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .booking-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.7rem;
+            color: var(--muted-color);
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .booking-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .primary-btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+            text-align: center;
+            flex: 1;
+        }
+
+        .primary-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .secondary-btn {
+            display: inline-block;
+            background-color: white;
+            color: var(--primary-color);
+            padding: 0.6rem 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+            text-align: center;
+            border: 1px solid var(--primary-color);
+            flex: 1;
+        }
+
+        .secondary-btn:hover {
+            background-color: #f0f7ff;
+        }
+
+        .btn-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #e9ecef;
+            color: #6c757d;
+            border-color: #dee2e6;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .status-active {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .status-past {
+            background-color: var(--muted-color);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-state p {
+            color: var(--muted-color);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Form styles for cancel button */
+        .cancel-form {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="{% url 'users:client_dashboard' %}" class="navbar-brand">VenueBooker</a>
+        <div class="navbar-right">
+            <a href="{% url 'users:view_bookings' %}" class="view-bookings-link">View Bookings</a>
+            <a href="{% url 'users:profile' %}" class="profile-icon">👤</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="bookings-header">
+            <h1 class="bookings-title">My Bookings</h1>
+        </div>
+
+        <!-- Current Bookings Section -->
+        <div class="bookings-section">
+            <h2 class="section-title">Current Bookings</h2>
+            
+            {% if has_current %}
+                <div class="booking-grid">
+                    {% for booking in current_bookings %}
+                    <div class="booking-card">
+                        {% if booking.venue_image %}
+                            <img src="{{ booking.venue_image }}" alt="{{ booking.venue_name }}" class="booking-image">
+                        {% else %}
+                            <img src="{% static 'default-placeholder.png' %}" alt="No image available" class="booking-image">
+                        {% endif %}
+                        
+                        <div class="booking-content">
+                            <span class="status-badge status-active">UPCOMING</span>
+                            <h3 class="booking-venue">{{ booking.venue_name }}</h3>
+                            <p class="booking-vendor">Hosted by {{ booking.vendor_name }}</p>
+                            
+                            <div class="booking-dates">
+                                <div class="date-group">
+                                    <div class="date-label">Start Date</div>
+                                    <div class="date-value">{{ booking.start_date|date:"M d, Y h:i A" }}</div>
+                                </div>
+                                <div class="date-group">
+                                    <div class="date-label">End Date</div>
+                                    <div class="date-value">{{ booking.end_date|date:"M d, Y h:i A" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="booking-meta">
+                                <div class="meta-item">
+                                    <span class="meta-label">Total Amount</span>
+                                    <span class="meta-value">${{ booking.amount|floatformat:2 }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Payment Method</span>
+                                    <span class="meta-value">{{ booking.payment_method|title }} •••• {{ booking.card_last_four }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="booking-actions">
+                                {% if booking.venue_id %}
+                                    <a href="{% url 'users:venue_detail' booking.venue_id %}" class="primary-btn">View Venue</a>
+                                {% else %}
+                                    <button class="primary-btn btn-disabled" disabled title="Venue details unavailable">View Venue</button>
+                                {% endif %}
+                                
+                                {% if booking.can_cancel %}
+                                    <form method="post" action="{% url 'users:view_bookings' %}" class="cancel-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                                        <button type="submit" name="cancel_booking" class="secondary-btn" 
+                                                onclick="return confirm('Are you sure you want to cancel this booking?')">
+                                            Cancel Booking
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <button class="secondary-btn btn-disabled" disabled title="Cannot cancel within {{ min_cancel_days }} days of booking">
+                                        Cancel Booking
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>You don't have any upcoming bookings.</p>
+                    <a href="{% url 'users:client_dashboard' %}" class="primary-btn">Browse Venues</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Past Bookings Section -->
+        <div class="bookings-section">
+            <h2 class="section-title">Past Bookings</h2>
+            
+            {% if has_past %}
+                <div class="booking-grid">
+                    {% for booking in past_bookings %}
+                    <div class="booking-card">
+                        {% if booking.venue_image %}
+                            <img src="{{ booking.venue_image }}" alt="{{ booking.venue_name }}" class="booking-image">
+                        {% else %}
+                            <img src="{% static 'default-placeholder.png' %}" alt="No image available" class="booking-image">
+                        {% endif %}
+                        
+                        <div class="booking-content">
+                            <span class="status-badge status-past">COMPLETED</span>
+                            <h3 class="booking-venue">{{ booking.venue_name }}</h3>
+                            <p class="booking-vendor">Hosted by {{ booking.vendor_name }}</p>
+                            
+                            <div class="booking-dates">
+                                <div class="date-group">
+                                    <div class="date-label">Start Date</div>
+                                    <div class="date-value">{{ booking.start_date|date:"M d, Y h:i A" }}</div>
+                                </div>
+                                <div class="date-group">
+                                    <div class="date-label">End Date</div>
+                                    <div class="date-value">{{ booking.end_date|date:"M d, Y h:i A" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="booking-meta">
+                                <div class="meta-item">
+                                    <span class="meta-label">Total Amount</span>
+                                    <span class="meta-value">${{ booking.amount|floatformat:2 }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Payment Method</span>
+                                    <span class="meta-value">{{ booking.payment_method|title }} •••• {{ booking.card_last_four }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="booking-actions">
+                                {% if booking.venue_id %}
+                                    <a href="{% url 'users:venue_detail' booking.venue_id %}" class="primary-btn">View Venue</a>
+                                {% else %}
+                                    <button class="primary-btn btn-disabled" disabled title="Venue details unavailable">View Venue</button>
+                                {% endif %}
+                                <button class="secondary-btn">Book Again</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>You don't have any past bookings yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

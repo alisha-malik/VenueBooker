@@ -114,6 +114,22 @@
             padding: 2rem;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .booking-conflict-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+
+        .booking-conflict-message.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
         }
 
         .form-group {
@@ -471,8 +487,8 @@
                 return false;
             }
 
-            return true;
-        }
+                return true;
+            }
 
         function validateExpiryDate() {
             const expiryDate = document.getElementById('expiry_date').value;
@@ -729,6 +745,26 @@
                     }
                 });
             }
+
+            // Check for conflict message in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('conflict')) {
+                const conflictMessage = document.getElementById('booking-conflict-message');
+                conflictMessage.classList.add('show');
+                
+                // Highlight the date/time fields
+                const dateTimeFields = [
+                    'start_date', 'end_date', 'start_time', 'end_time'
+                ];
+                
+                dateTimeFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        const formGroup = field.closest('.form-group');
+                        formGroup.classList.add('has-error');
+                    }
+                });
+            }
         });
     </script>
 </head>
@@ -771,6 +807,9 @@
 
         <div class="booking-form">
             <h2 style="margin-top: 0; margin-bottom: 1.5rem;">Booking Details</h2>
+            <div class="booking-conflict-message" id="booking-conflict-message">
+                This venue is already booked for the selected date and time. Please choose a different time slot.
+            </div>
             <form method="post">
                 {% csrf_token %}
                 

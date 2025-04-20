@@ -122,9 +122,10 @@
         {% elif user.user_type == "Client" %}
             <a href="{% url 'users:client_dashboard' %}" class="btn">Go to Client Dashboard</a>
         {% endif %}
+
+        <a href="{% url 'users:logout' %}" class="btn">Logout</a>
     </div>
 </div>
 
 </body>
 </html>
-

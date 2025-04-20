@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.db import connection
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
+from datetime import datetime, timedelta
 import sys
         
 def client_dashboard(request):
@@ -387,4 +388,132 @@ def venue_booking(request, venue_id):
 
     except Exception as e:
         print(f"[DEBUG] venue_booking error → {e}", flush=True)
+        return redirect('users:client_dashboard')
+
+def view_bookings(request):
+    user_id = request.session.get('user_id')
+    print(f"[DEBUG] Starting view_bookings for user_id: {user_id}", flush=True)
+
+    if not user_id:
+        messages.error(request, "You must be logged in to view bookings.")
+        return redirect('users:login')
+
+    try:
+        current_datetime = timezone.now()
+        min_cancel_date = current_datetime + timedelta(days=5)
+        
+        # Handle booking cancellation
+        if request.method == 'POST' and 'cancel_booking' in request.POST:
+            booking_id = request.POST.get('booking_id')
+            
+            with connection.cursor() as cursor:
+                # Check if booking exists and meets cancellation criteria
+                cursor.execute("""
+                    SELECT b.booking_id, b.start_date 
+                    FROM booking b
+                    WHERE b.booking_id = %s 
+                    AND b.user_id = %s
+                    AND b.start_date >= %s
+                """, [booking_id, user_id, min_cancel_date])
+                
+                booking = cursor.fetchone()
+                
+                if booking:
+                    # Delete the booking
+                    cursor.execute("""
+                        DELETE FROM booking 
+                        WHERE booking_id = %s
+                    """, [booking_id])
+                    messages.success(request, "Booking successfully cancelled.")
+                    return redirect('users:view_bookings')
+                else:
+                    messages.error(request, "Cannot cancel booking. Either it doesn't exist or it's within 5 days.")
+                    return redirect('users:view_bookings')
+
+        # Get current bookings (future or ongoing)
+        current_bookings = []
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT b.booking_id, b.start_date, b.end_date, 
+                       v.venue_id, v.name, v.image_url,
+                       p.amount, p.method, p.card_last_four,
+                       CONCAT(u.first_name, ' ', u.last_name) AS vendor_name,
+                       b.start_date >= %s as can_cancel
+                FROM booking b
+                JOIN venue v ON b.venue_id = v.venue_id
+                JOIN payment p ON b.payment_id = p.payment_id
+                JOIN users u ON v.user_id = u.user_id
+                WHERE b.user_id = %s AND b.end_date >= %s
+                ORDER BY b.start_date ASC
+            """, [min_cancel_date, user_id, current_datetime])
+            
+            for row in cursor.fetchall():
+                image_url = row[5]
+                if image_url and not image_url.startswith('/media/'):
+                    image_url = f'/media/{image_url}'
+                    image_url = request.build_absolute_uri(image_url)
+                
+                current_bookings.append({
+                    'id': row[0],
+                    'start_date': row[1],
+                    'end_date': row[2],
+                    'venue_id': row[3],
+                    'venue_name': row[4],
+                    'venue_image': image_url,
+                    'amount': float(row[6]),
+                    'payment_method': row[7],
+                    'card_last_four': row[8],
+                    'vendor_name': row[9],
+                    'can_cancel': bool(row[10]),
+                    'is_past': False
+                })
+
+        # Get past bookings
+        past_bookings = []
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT b.booking_id, b.start_date, b.end_date, 
+                       v.venue_id, v.name, v.image_url,
+                       p.amount, p.method, p.card_last_four,
+                       CONCAT(u.first_name, ' ', u.last_name) AS vendor_name
+                FROM booking b
+                JOIN venue v ON b.venue_id = v.venue_id
+                JOIN payment p ON b.payment_id = p.payment_id
+                JOIN users u ON v.user_id = u.user_id
+                WHERE b.user_id = %s AND b.end_date < %s
+                ORDER BY b.end_date DESC
+                LIMIT 20
+            """, [user_id, current_datetime])
+            
+            for row in cursor.fetchall():
+                image_url = row[5]
+                if image_url and not image_url.startswith('/media/'):
+                    image_url = f'/media/{image_url}'
+                    image_url = request.build_absolute_uri(image_url)
+                
+                past_bookings.append({
+                    'id': row[0],
+                    'start_date': row[1],
+                    'end_date': row[2],
+                    'venue_id': row[3],
+                    'venue_name': row[4],
+                    'venue_image': image_url,
+                    'amount': float(row[6]),
+                    'payment_method': row[7],
+                    'card_last_four': row[8],
+                    'vendor_name': row[9],
+                    'is_past': True
+                })
+
+        return render(request, 'client/view_bookings.html', {
+            'current_bookings': current_bookings,
+            'past_bookings': past_bookings,
+            'has_current': len(current_bookings) > 0,
+            'has_past': len(past_bookings) > 0,
+            'min_cancel_days': 5
+        })
+
+    except Exception as e:
+        print(f"[DEBUG] view_bookings error → {e}", file=sys.stderr)
+        messages.error(request, "Could not load bookings.")
         return redirect('users:client_dashboard')

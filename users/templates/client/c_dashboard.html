@@ -62,6 +62,20 @@
             font-size: 1.2rem;
         }
 
+        /* View Bookings Link */
+        .view-bookings-link {
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .view-bookings-link:hover {
+            background-color: #e9ecef;
+        }
+
         /* Main Content */
         .main-content {
             margin-top: 80px;
@@ -71,16 +85,15 @@
             margin-right: auto;
         }
 
-        /* Search and Filter Section */
         .search-filter-section {
             padding: 1rem;
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 0 auto 2rem auto;
         }
 
         .search-container {
             background: white;
-            padding: 4px;
+            padding: 16px;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             margin: 16px 0;
@@ -89,16 +102,17 @@
         .search-form {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 12px;
             width: 100%;
+            flex-wrap: nowrap;
         }
 
+        /* UPDATED search input group */
         .search-input-group {
             position: relative;
             flex: 1;
             min-width: 100px;
-            max-width: calc(100% - 320px);
+            max-width: calc(100% - 250px); /* Adjusted space for buttons */
         }
 
         .search-icon {
@@ -122,25 +136,30 @@
             text-overflow: ellipsis;
         }
 
+        /* UPDATED Button Group */
         .button-group {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             flex-shrink: 0;
-            margin-left: auto;
+            min-width: 220px; /* Adjusted minimum width for buttons */
+            justify-content: flex-end;
         }
 
         .search-button,
         .filter-button {
             height: 40px;
-            padding: 0 20px;
+            padding: 0 16px;
             border: none;
             border-radius: 6px;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             white-space: nowrap;
-            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
         }
 
         .search-button {
@@ -153,18 +172,26 @@
             color: white;
         }
 
+        /* UPDATED Clear All Button */
         .clear-all {
             height: 40px;
+            width: 40px;
             display: inline-flex;
             align-items: center;
-            padding: 0 16px;
-            color: #6366f1;
+            justify-content: center;
+            color: #d63031;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 500;
             border-radius: 6px;
             white-space: nowrap;
-            flex-shrink: 0;
+            background-color: #ffecec;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clear-all:hover {
+            background-color: #ffd8d8;
         }
 
         /* Hover states */
@@ -176,24 +203,21 @@
             background-color: #059669;
         }
 
-        .clear-all:hover {
-            background-color: #f3f4f6;
-        }
-
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
             .search-form {
                 flex-wrap: wrap;
             }
-
             .search-input-group {
-                max-width: 100%;
                 width: 100%;
-                margin-bottom: 8px;
+                max-width: 100%;
             }
-
             .button-group {
                 width: 100%;
-                justify-content: flex-end;
+                justify-content: space-between;
+            }
+            .clear-all {
+                width: auto;
+                padding: 0 12px;
             }
         }
 
@@ -494,72 +518,15 @@
                 flex-direction: column;
             }
         }
-        .sort-dropdown {
-            position: relative;
-        }
-        .sort-button {
-            height: 40px;
-            width: 40px;
-            padding: 0;
-            background-color: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            color: #6b7280;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-        }
-        .sort-button:hover {
-            background-color: #f3f4f6;
-        }
-        .sort-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 4px;
-            background-color: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            min-width: 180px;
-            z-index: 1000;
-        }
-        .sort-menu.show {
-            display: block;
-        }
-        .sort-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            color: #374151;
-            text-decoration: none;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
-        .sort-option:hover {
-            background-color: #f3f4f6;
-        }
-        .sort-option i {
-            width: 16px;
-        }
-        .sort-option:not(:last-child) {
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .sort-button.active {
-            background-color: #f3f4f6;
-            border-color: #d1d5db;
-        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
         <a href="{% url 'users:client_dashboard' %}" class="navbar-brand">VenueBooker</a>
         <div class="navbar-right">
+            <a href="{% url 'users:view_bookings' %}" class="view-bookings-link">View Bookings</a>
             <a href="{% url 'users:profile' %}" class="profile-icon">👤</a>
         </div>
     </nav>
@@ -575,32 +542,17 @@
                         <input type="text" name="venue_name" placeholder="Search venues..." value="{{ request.GET.venue_name|default:'' }}" class="search-input">
                     </div>
                     <div class="button-group">
-                        {% if request.GET.venue_name or request.GET.categories or request.GET.rate or request.GET.province or request.GET.city or request.GET.sort %}
-                            <a href="{% url 'users:client_dashboard' %}" class="clear-all">Clear All</a>
-                        {% endif %}
-                        <button type="submit" class="search-button">Search</button>
-                        <button type="button" class="filter-button" onclick="openFilterModal()">
-                            Filters
-                        </button>
-                        <div class="sort-dropdown">
-                            <button type="button" class="sort-button" onclick="toggleSortMenu()">
-                                <i class="fas fa-bars"></i>
+                        {% if request.GET.venue_name or request.GET.categories or request.GET.rate or request.GET.province or request.GET.city or request.GET.street or request.GET.status or request.GET.availability_type %}
+                            <button type="button" class="clear-all" onclick="window.location.href='{% url 'users:client_dashboard' %}'" title="Clear all filters">
+                                <i class="fas fa-times"></i>
                             </button>
-                            <div class="sort-menu" id="sortMenu">
-                                <a href="?{% if request.GET.venue_name %}venue_name={{ request.GET.venue_name }}&{% endif %}sort=popularity" class="sort-option">
-                                    <i class="fas fa-fire"></i>
-                                    Most Popular
-                                </a>
-                                <a href="?{% if request.GET.venue_name %}venue_name={{ request.GET.venue_name }}&{% endif %}sort=price_low" class="sort-option">
-                                    <i class="fas fa-dollar-sign"></i>
-                                    Price: Low to High
-                                </a>
-                                <a href="?{% if request.GET.venue_name %}venue_name={{ request.GET.venue_name }}&{% endif %}sort=price_high" class="sort-option">
-                                    <i class="fas fa-dollar-sign"></i><i class="fas fa-dollar-sign"></i>
-                                    Price: High to Low
-                                </a>
-                            </div>
-                        </div>
+                        {% endif %}
+                        <button type="submit" class="search-button">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button type="button" class="filter-button" onclick="openFilterModal()">
+                            <i class="fas fa-filter"></i> Filters
+                        </button>
                     </div>
                 </form>
             </div>
@@ -683,9 +635,9 @@
                             <label for="status">Status</label>
                             <select name="status" id="status">
                                 <option value="">All Statuses</option>
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                                <option value="Under Maintenance">Under Maintenance</option>
+                                <option value="Active" {% if request.GET.status == 'Active' %}selected{% endif %}>Active</option>
+                                <option value="Inactive" {% if request.GET.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                                <option value="Under Maintenance" {% if request.GET.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
                             </select>
                         </div>
 
@@ -693,9 +645,9 @@
                             <h4>Price Range</h4>
                             <div class="price-range">
                                 <span>$0</span>
-                                <input type="range" name="rate" min="0" max="500" value="{{ field_values.rate|default:200 }}" 
+                                <input type="range" name="rate" min="0" max="500" value="{{ request.GET.rate|default:200 }}" 
                                        class="price-slider" id="priceSlider">
-                                <span>$<span id="priceValue">200</span>/hr</span>
+                                <span>$<span id="priceValue">{{ request.GET.rate|default:200 }}</span>/hr</span>
                             </div>
                         </div>
 
@@ -703,8 +655,8 @@
                             <label for="availability">Availability</label>
                             <select name="availability_type" id="availability">
                                 <option value="">All Types</option>
-                                <option value="Full-Year">Full-Year</option>
-                                <option value="Seasonal">Seasonal</option>
+                                <option value="Full-Year" {% if request.GET.availability_type == 'Full-Year' %}selected{% endif %}>Full-Year</option>
+                                <option value="Seasonal" {% if request.GET.availability_type == 'Seasonal' %}selected{% endif %}>Seasonal</option>
                             </select>
                         </div>
                     </div>
@@ -718,19 +670,19 @@
                             <select name="province" id="province">
                                 <option value="">All Provinces</option>
                                 {% for p in provinces %}
-                                    <option value="{{ p }}">{{ p }}</option>
+                                    <option value="{{ p }}" {% if request.GET.province == p %}selected{% endif %}>{{ p }}</option>
                                 {% endfor %}
                             </select>
                         </div>
 
                         <div class="filter-group">
                             <label for="city">City</label>
-                            <input type="text" name="city" id="city" placeholder="Enter city name">
+                            <input type="text" name="city" id="city" placeholder="Enter city name" value="{{ request.GET.city|default:'' }}">
                         </div>
 
                         <div class="filter-group">
                             <label for="street">Street</label>
-                            <input type="text" name="street" id="street" placeholder="Enter street name">
+                            <input type="text" name="street" id="street" placeholder="Enter street name" value="{{ request.GET.street|default:'' }}">
                         </div>
                     </div>
                 </div>
@@ -742,7 +694,7 @@
                         {% for category in categories %}
                             <label class="category-checkbox">
                                 <input type="checkbox" name="categories" value="{{ category }}"
-                                       {% if category in field_values.selected_categories %}checked{% endif %}>
+                                       {% if category in request.GET.getlist.categories %}checked{% endif %}>
                                 <span>{{ category }}</span>
                             </label>
                         {% endfor %}
@@ -819,53 +771,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             priceValue.textContent = priceSlider.value;
         });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById('filterModal');
-            
-            // Close modal when clicking outside
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            });
-
-            // Close modal when pressing Escape key
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape' && modal.style.display === 'block') {
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            });
-        });
-
-        function toggleSortMenu() {
-            const menu = document.getElementById('sortMenu');
-            const button = document.querySelector('.sort-button');
-            menu.classList.toggle('show');
-            button.classList.toggle('active');
-
-            // Close menu when clicking outside
-            document.addEventListener('click', function closeMenu(e) {
-                if (!e.target.closest('.sort-dropdown')) {
-                    menu.classList.remove('show');
-                    button.classList.remove('active');
-                    document.removeEventListener('click', closeMenu);
-                }
-            });
-        }
-
-        // Close menu when pressing Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const menu = document.getElementById('sortMenu');
-                const button = document.querySelector('.sort-button');
-                menu.classList.remove('show');
-                button.classList.remove('active');
-            }
-        });
     </script>
 </body>
 </html>
-
