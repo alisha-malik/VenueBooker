@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Bookings | VenueBooker</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --text-color: #2c3e50;
+            --light-bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 2rem;
+            color: var(--text-color);
+        }
+
+        .back-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .back-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--primary-dark);
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .card p {
+            margin: 0.25rem 0;
+        }
+
+        .empty {
+            text-align: center;
+            font-style: italic;
+            color: #888;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <a href="{% url 'vendor_dashboard' %}" class="back-button">← Back to Dashboard</a>
+
+    <h2>Your Bookings</h2>
+
+    {% if bookings %}
+    <div class="card-container">
+        {% for booking in bookings %}
+        <div class="card">
+            <h3>{{ booking.venue.name }}</h3>
+            <p><strong>Client:</strong> {{ booking.client.username }}</p>
+            <p><strong>Date:</strong> {{ booking.date }}</p>
+            <p><strong>Time:</strong> {{ booking.time }}</p>
+            <p><strong>Status:</strong> {{ booking.status }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">No bookings found.</div>
+    {% endif %}
+</body>
+</html>
