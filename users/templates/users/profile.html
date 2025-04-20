@@ -1,17 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Profile</title>
+    <title>User Profile</title>
     <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 3rem;
+        }
+
+        .profile-container {
+            display: flex;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .profile-image {
+            width: 40%;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            font-size: 1rem;
+            color: #888;
+        }
+
+        .profile-info {
+            width: 60%;
+            padding: 2rem;
+        }
+
+        .profile-info h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .info-block {
+            margin-top: 1.5rem;
+        }
+
+        .info-block p {
+            margin: 0.5rem 0;
+            font-size: 1.05rem;
+            color: #34495e;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+
         .btn {
             display: inline-block;
             padding: 0.6rem 1.2rem;
             background-color: #3498db;
             color: white;
             text-decoration: none;
-            border-radius: 5px;
-            margin-top: 1rem;
-            transition: background-color 0.2s ease;
+            border-radius: 8px;
+            margin-top: 1.2rem;
+            margin-right: 1rem;
+            transition: background-color 0.3s ease;
         }
 
         .btn:hover {
@@ -19,7 +72,6 @@
         }
 
         .logout-link {
-            margin-left: 1rem;
             background-color: #e74c3c;
         }
 
@@ -29,27 +81,33 @@
     </style>
 </head>
 <body>
-    <h1>User Profile</h1>
-    
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-    
-    <div>
-        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Phone:</strong> {{ user.phone }}</p>
-        <p><strong>Account Type:</strong> {{ user.user_type }}</p>
+
+<div class="profile-container">
+    <!-- Left: Profile Image Placeholder -->
+    <div class="profile-image">
+        Profile Image Placeholder
     </div>
 
-    {% if user.user_type == "Vendor" %}
-        <a href="{% url 'users:vendor_dashboard' %}" class="btn">Back to Vendor Dashboard</a>
-    {% elif user.user_type == "Client" %}
-        <a href="{% url 'users:client_dashboard' %}" class="btn">Back to Client Dashboard</a>
-    {% endif %}
+    <!-- Right: Profile Details -->
+    <div class="profile-info">
+        <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+        <p><em>{{ user.user_type }}</em></p>
 
-    <a href="{% url 'users:logout' %}" class="btn logout-link">Logout</a>
+        <div class="info-block">
+            <p><span class="label">Email:</span> {{ user.email }}</p>
+            <p><span class="label">Phone:</span> {{ user.phone }}</p>
+        </div>
+
+        {% if user.user_type == "Vendor" %}
+            <a href="{% url 'users:vendor_dashboard' %}" class="btn">Vendor Dashboard</a>
+        {% elif user.user_type == "Client" %}
+            <a href="{% url 'users:client_dashboard' %}" class="btn">Client Dashboard</a>
+        {% endif %}
+
+        <a href="{% url 'users:logout' %}" class="btn logout-link">Logout</a>
+    </div>
+</div>
+
 </body>
 </html>
+
