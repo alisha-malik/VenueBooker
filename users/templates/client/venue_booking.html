@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <title>Book {{ venue.name }} | VenueBooker</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            color: #2c3e50;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .back-link:hover {
+            transform: translateX(-3px);
+        }
+
+        .booking-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .booking-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .booking-title {
+            margin: 0;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+
+        .venue-details {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .venue-image-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .venue-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .venue-image:hover {
+            transform: scale(1.05);
+        }
+
+        .venue-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            width: 100px;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .booking-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .submit-button {
+            background-color: #3498db;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+
+        .submit-button:hover {
+            background-color: #2980b9;
+        }
+
+        .submit-button:active {
+            transform: scale(0.98);
+        }
+
+        /* Loading state for button */
+        .submit-button.loading {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        /* Payment section styles */
+        .payment-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #ddd;
+        }
+
+        .payment-section h3 {
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+        }
+
+        .card-input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+        }
+
+        .expiry-cvv-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+            padding-left: 0.5rem;
+            border-left: 2px solid #e74c3c;
+        }
+
+        .card-info,
+        .time-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+            padding-left: 0.5rem;
+            border-left: 2px solid #3498db;
+        }
+
+        .total-amount {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e1e8ed;
+        }
+
+        .total-amount-label {
+            font-size: 1rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .total-amount-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .rate-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        /* Add these styles for form validation feedback */
+        .form-group.has-error input,
+        .form-group.has-error select,
+        .form-group.has-error textarea {
+            border-color: #e74c3c !important;
+        }
+
+        .form-group.has-error .error-message {
+            display: block;
+        }
+
+        /* Default state for form fields */
+        .form-group input,
+        .form-group select {
+            border-color: #ddd;
+        }
+
+        /* Remove the messages container styles since we're not using them anymore */
+        .messages {
+            display: none;
+        }
+
+        /* Add to existing styles */
+        .date-time-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .date-time-pair {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid #e1e8ed;
+        }
+
+        .date-time-pair h4 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+        }
+
+        .submit-button.success {
+            background-color: #2ecc71;
+            cursor: default;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <script>
+        function validateCardNumber(cardNumber) {
+            // Remove all spaces
+            const digitsOnly = cardNumber.replace(/\s/g, '');
+            
+            // Check if it contains only digits
+            if (!/^\d+$/.test(digitsOnly)) {
+                return {
+                    isValid: false,
+                    message: 'Please enter only numbers and spaces'
+                };
+            }
+            
+            // More relaxed length validation
+            if (digitsOnly.length < 13) {
+                return {
+                    isValid: false,
+                    message: 'Please enter at least 13 digits'
+                };
+            }
+            
+            if (digitsOnly.length > 19) {
+                return {
+                    isValid: false,
+                    message: 'Card number is too long. Please check and try again'
+                };
+            }
+            
+            return {
+                isValid: true,
+                message: ''
+            };
+        }
+
+        function formatCardNumber(input) {
+            // Remove any non-digit characters as user types
+            let value = input.value.replace(/\D/g, '');
+            
+            // Format the number with spaces for readability (4 digit groups)
+            let formattedValue = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formattedValue += ' ';
+                }
+                formattedValue += value[i];
+            }
+            input.value = formattedValue;
+
+            // Validate and show error message
+            const formGroup = input.closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+            const validation = validateCardNumber(formattedValue);
+            
+            if (!validation.isValid) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = validation.message;
+                errorMessage.style.display = 'block';
+                } else {
+                formGroup.classList.remove('has-error');
+                errorMessage.style.display = 'none';
+            }
+        }
+
+        function validateDateTime() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const startTime = document.getElementById('start_time').value;
+            const endTime = document.getElementById('end_time').value;
+
+            // Get current date and minimum allowed date (5 days from now)
+            const currentDate = new Date();
+            const minAllowedDate = new Date();
+            minAllowedDate.setDate(currentDate.getDate() + 5);
+
+            // Format dates for comparison
+            const currentDateStr = currentDate.toISOString().split('T')[0];
+            const minAllowedDateStr = minAllowedDate.toISOString().split('T')[0];
+
+            // Validate start date
+            const startDateGroup = document.getElementById('start_date').closest('.form-group');
+            const startDateError = startDateGroup.querySelector('.error-message');
+            if (!startDate) {
+                startDateGroup.classList.add('has-error');
+                startDateError.textContent = 'Please select a start date';
+                startDateError.style.display = 'block';
+                return false;
+            } else if (startDate < minAllowedDateStr) {
+                startDateGroup.classList.add('has-error');
+                startDateError.textContent = 'Start date must be at least 5 days from today';
+                startDateError.style.display = 'block';
+                return false;
+            } else {
+                startDateGroup.classList.remove('has-error');
+                startDateError.style.display = 'none';
+            }
+
+            // Validate end date
+            const endDateGroup = document.getElementById('end_date').closest('.form-group');
+            const endDateError = endDateGroup.querySelector('.error-message');
+            if (!endDate) {
+                endDateGroup.classList.add('has-error');
+                endDateError.textContent = 'Please select an end date';
+                endDateError.style.display = 'block';
+                return false;
+            } else if (endDate < minAllowedDateStr) {
+                endDateGroup.classList.add('has-error');
+                endDateError.textContent = 'End date must be at least 5 days from today';
+                endDateError.style.display = 'block';
+                return false;
+            } else {
+                endDateGroup.classList.remove('has-error');
+                endDateError.style.display = 'none';
+            }
+
+            // Validate start time
+            const startTimeGroup = document.getElementById('start_time').closest('.form-group');
+            const startTimeError = startTimeGroup.querySelector('.error-message');
+            if (!startTime) {
+                startTimeGroup.classList.add('has-error');
+                startTimeError.textContent = 'Please select a start time';
+                startTimeError.style.display = 'block';
+                return false;
+            } else {
+                startTimeGroup.classList.remove('has-error');
+                startTimeError.style.display = 'none';
+            }
+
+            // Validate end time
+            const endTimeGroup = document.getElementById('end_time').closest('.form-group');
+            const endTimeError = endTimeGroup.querySelector('.error-message');
+            if (!endTime) {
+                endTimeGroup.classList.add('has-error');
+                endTimeError.textContent = 'Please select an end time';
+                endTimeError.style.display = 'block';
+                return false;
+            } else {
+                endTimeGroup.classList.remove('has-error');
+                endTimeError.style.display = 'none';
+            }
+
+            const start = new Date(`${startDate}T${startTime}`);
+            const end = new Date(`${endDate}T${endTime}`);
+
+            // If dates are the same, ensure end time is after start time
+            if (startDate === endDate && endTime <= startTime) {
+                startTimeGroup.classList.add('has-error');
+                endTimeGroup.classList.add('has-error');
+                startTimeError.textContent = 'End time must be after start time';
+                endTimeError.textContent = 'End time must be after start time';
+                startTimeError.style.display = 'block';
+                endTimeError.style.display = 'block';
+                return false;
+            }
+
+            // If dates are different, ensure end date is after start date
+            if (startDate !== endDate && end <= start) {
+                startDateGroup.classList.add('has-error');
+                endDateGroup.classList.add('has-error');
+                startDateError.textContent = 'End date must be after start date';
+                endDateError.textContent = 'End date must be after start date';
+                startDateError.style.display = 'block';
+                endDateError.style.display = 'block';
+                return false;
+            }
+
+            return true;
+        }
+
+        function validateExpiryDate() {
+            const expiryDate = document.getElementById('expiry_date').value;
+            const formGroup = document.getElementById('expiry_date').closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+
+            if (!expiryDate) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Please enter the card expiry date in YYYY-MM format';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            // Check if the date is in the correct format (YYYY-MM)
+            if (!/^\d{4}-\d{2}$/.test(expiryDate)) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Please enter the expiry date in YYYY-MM format (e.g., 2024-12)';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            const [year, month] = expiryDate.split('-').map(Number);
+            
+            // Validate month is between 1 and 12
+            if (month < 1 || month > 12) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Month must be between 01 and 12';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+
+            // Check if year is at least current year
+            if (year < currentYear) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Card has expired. Please enter a valid future expiry date';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            // If it's the current year, check the month
+            if (year === currentYear) {
+                const currentMonth = currentDate.getMonth() + 1;
+                if (month < currentMonth) {
+                    formGroup.classList.add('has-error');
+                    errorMessage.textContent = 'Card has expired. Please enter a valid future expiry date';
+                    errorMessage.style.display = 'block';
+                    return false;
+                }
+            }
+
+            // Check if year is too far in the future (e.g., more than 10 years)
+            if (year > currentYear + 10) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Expiry date cannot be more than 10 years in the future';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            formGroup.classList.remove('has-error');
+            errorMessage.style.display = 'none';
+            return true;
+        }
+
+        function validateCVV() {
+            const cvv = document.getElementById('cvv').value;
+            const formGroup = document.getElementById('cvv').closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+
+            if (!cvv) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Please enter the CVV code';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            if (!/^\d{3,4}$/.test(cvv)) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Please enter a valid CVV (3-4 digits)';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            formGroup.classList.remove('has-error');
+            errorMessage.style.display = 'none';
+            return true;
+        }
+
+        function validateMethod() {
+            const method = document.getElementById('method').value;
+            const formGroup = document.getElementById('method').closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+
+            if (!method) {
+                formGroup.classList.add('has-error');
+                errorMessage.textContent = 'Please select a card type';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+
+            formGroup.classList.remove('has-error');
+            errorMessage.style.display = 'none';
+            return true;
+        }
+
+        function calculateTotalAmount() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const startTime = document.getElementById('start_time').value;
+            const endTime = document.getElementById('end_time').value;
+            const hourlyRate = parseFloat("{{ venue.price }}");
+
+            if (!startDate || !endDate || !startTime || !endTime) {
+                document.getElementById('total-amount-container').style.display = 'none';
+                return;
+            }
+
+            if (!validateDateTime()) {
+                document.getElementById('total-amount-container').style.display = 'none';
+                return;
+            }
+
+            const start = new Date(`${startDate}T${startTime}`);
+            const end = new Date(`${endDate}T${endTime}`);
+            
+            const diffHours = Math.ceil((end - start) / (1000 * 60 * 60));
+            
+            if (diffHours > 0) {
+                const totalAmount = (diffHours * hourlyRate).toFixed(2);
+                
+                const totalAmountElement = document.getElementById('total-amount-value');
+                const hoursBookedElement = document.getElementById('hours-booked');
+                const containerElement = document.getElementById('total-amount-container');
+                
+                if (totalAmountElement && hoursBookedElement && containerElement) {
+                    totalAmountElement.textContent = `$${totalAmount}`;
+                    hoursBookedElement.textContent = `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+                    containerElement.style.display = 'block';
+                }
+            } else {
+                document.getElementById('total-amount-container').style.display = 'none';
+            }
+        }
+
+        function initializeTimeOptions() {
+            const startTimeSelect = document.getElementById('start_time');
+            const endTimeSelect = document.getElementById('end_time');
+            
+            startTimeSelect.innerHTML = '<option value="">Select start time</option>';
+            endTimeSelect.innerHTML = '<option value="">Select end time</option>';
+            
+            for (let i = 6; i <= 23; i++) {
+                const hour = i.toString().padStart(2, '0');
+                const timeValue = `${hour}:00`;
+                const displayTime = `${i > 12 ? i-12 : i}:00 ${i >= 12 ? 'PM' : 'AM'}`;
+                
+                const startOption = new Option(displayTime, timeValue);
+                startTimeSelect.add(startOption);
+                
+                const endOption = new Option(displayTime, timeValue);
+                endTimeSelect.add(endOption);
+            }
+        }
+
+        function updateEndTimeOptions() {
+            const startTime = document.getElementById('start_time').value;
+            const endTimeSelect = document.getElementById('end_time');
+            
+            if (!startTime) return;
+
+            endTimeSelect.innerHTML = '<option value="">Select end time</option>';
+            
+            const startHour = parseInt(startTime.split(':')[0]);
+            
+            for (let i = startHour + 1; i <= 23; i++) {
+                const hour = i.toString().padStart(2, '0');
+                const timeValue = `${hour}:00`;
+                const displayTime = `${i > 12 ? i-12 : i}:00 ${i >= 12 ? 'PM' : 'AM'}`;
+                
+                const option = new Option(displayTime, timeValue);
+                endTimeSelect.add(option);
+            }
+        }
+
+        // Add event listeners when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set min date for date inputs (5 days from now)
+            const currentDate = new Date();
+            const minAllowedDate = new Date();
+            minAllowedDate.setDate(currentDate.getDate() + 5);
+            
+            const startDateInput = document.getElementById('start_date');
+            const endDateInput = document.getElementById('end_date');
+            
+            if (startDateInput) {
+                startDateInput.min = minAllowedDate.toISOString().split('T')[0];
+            }
+            
+            if (endDateInput) {
+                endDateInput.min = minAllowedDate.toISOString().split('T')[0];
+            }
+
+            initializeTimeOptions();
+
+            // Add listeners for date/time changes
+            ['start_date', 'end_date', 'start_time', 'end_time'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', function() {
+                        if (id === 'start_time') {
+                            updateEndTimeOptions();
+                        }
+                        validateDateTime();
+                    calculateTotalAmount();
+                });
+                }
+            });
+
+            // Add listeners for payment fields
+            document.getElementById('expiry_date').addEventListener('input', validateExpiryDate);
+            document.getElementById('expiry_date').addEventListener('change', validateExpiryDate);
+            document.getElementById('expiry_date').addEventListener('blur', validateExpiryDate);
+            document.getElementById('cvv').addEventListener('input', validateCVV);
+            document.getElementById('method').addEventListener('change', validateMethod);
+            document.getElementById('card_number').addEventListener('blur', function() {
+                formatCardNumber(this);
+            });
+
+            // Calculate initial total if fields are already filled
+            calculateTotalAmount();
+
+            // Add form validation
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    let isValid = true;
+
+                    // Validate all fields
+                    if (!validateDateTime()) isValid = false;
+                    if (!validateExpiryDate()) isValid = false;
+                    if (!validateCVV()) isValid = false;
+                    if (!validateMethod()) isValid = false;
+                    
+                    const cardNumber = document.getElementById('card_number');
+                    if (cardNumber) {
+                        const validation = validateCardNumber(cardNumber.value);
+                        if (!validation.isValid) isValid = false;
+                    }
+
+                    if (!isValid) {
+                        event.preventDefault();
+                    }
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    <a href="{% url 'users:venue_detail' venue_id=venue.venue_id %}" class="back-link">← Back to Venue</a>
+
+    <div class="booking-container">
+        <div class="booking-header">
+            <h1 class="booking-title">Book {{ venue.name }}</h1>
+        </div>
+
+        <div class="venue-details">
+            <div class="venue-image-container">
+            {% if venue.image_url %}
+                <img src="{{ venue.image_url }}" alt="{{ venue.name }}" class="venue-image">
+            {% else %}
+                <img src="{% static 'default-placeholder.png' %}" alt="No image available" class="venue-image">
+            {% endif %}
+            </div>
+
+            <div class="venue-info">
+                <div class="info-row">
+                    <div class="info-label">Rate</div>
+                    <div class="info-value">${{ venue.price }}/hour</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Capacity</div>
+                    <div class="info-value">{{ venue.capacity }} people</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Vendor</div>
+                    <div class="info-value">{{ venue.vendor_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Contact</div>
+                    <div class="info-value">{{ venue.vendor_phone }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="booking-form">
+            <h2 style="margin-top: 0; margin-bottom: 1.5rem;">Booking Details</h2>
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="date-time-group">
+                    <div class="date-time-pair">
+                        <h4>Start Date & Time</h4>
+                        <div class="form-group {% if form_data.start_date and not form_data.start_date|date:'Y-m-d' %}has-error{% endif %}">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" 
+                                   id="start_date" 
+                                   name="start_date" 
+                                   min="{{ today|date:'Y-m-d' }}"
+                                   value="{{ form_data.start_date|default:'' }}"
+                                   required>
+                            <div class="error-message">Please enter a valid start date in YYYY-MM-DD format</div>
+                        </div>
+                        <div class="form-group {% if form_data.start_time and not form_data.start_time %}has-error{% endif %}">
+                            <label for="start_time">Start Time</label>
+                            <select id="start_time" name="start_time" required>
+                                <option value="">Select start time</option>
+                            </select>
+                            <div class="error-message">Please select a valid start time</div>
+                            <div class="time-info">Available in 1-hour increments from 6:00 AM to 11:00 PM</div>
+                        </div>
+                    </div>
+
+                    <div class="date-time-pair">
+                        <h4>End Date & Time</h4>
+                        <div class="form-group {% if form_data.end_date and not form_data.end_date|date:'Y-m-d' %}has-error{% endif %}">
+                            <label for="end_date">End Date</label>
+                            <input type="date" 
+                                   id="end_date" 
+                                   name="end_date" 
+                                   min="{{ today|date:'Y-m-d' }}"
+                                   value="{{ form_data.end_date|default:'' }}"
+                                   required>
+                            <div class="error-message">Please enter a valid end date in YYYY-MM-DD format</div>
+                        </div>
+                        <div class="form-group {% if form_data.end_time and not form_data.end_time %}has-error{% endif %}">
+                            <label for="end_time">End Time</label>
+                            <select id="end_time" name="end_time" required>
+                                <option value="">Select end time</option>
+                            </select>
+                            <div class="error-message">Please select a valid end time</div>
+                            <div class="time-info">Available in 1-hour increments from 6:00 AM to 11:00 PM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-section">
+                    <h3>Payment Information</h3>
+
+                    <div id="total-amount-container" class="total-amount" style="display: none;">
+                        <div class="total-amount-label">Total Amount</div>
+                        <div id="total-amount-value" class="total-amount-value">$0.00</div>
+                        <div class="rate-info">
+                            Based on ${{ venue.price }}/hour for <span id="hours-booked">0 hours</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group {% if form_data.method and not form_data.method %}has-error{% endif %}">
+                        <label for="method">Card Type</label>
+                        <select id="method" name="method" required>
+                            <option value="">Select card type</option>
+                            <option value="Credit Card" {% if form_data.method == "Credit Card" %}selected{% endif %}>Credit Card</option>
+                            <option value="Debit Card" {% if form_data.method == "Debit Card" %}selected{% endif %}>Debit Card</option>
+                        </select>
+                        <div class="error-message">Please select a valid card type</div>
+                    </div>
+
+                    <div class="form-group {% if form_data.card_number and not form_data.card_number|length >= 13 %}has-error{% endif %}">
+                        <label for="card_number">Card Number</label>
+                        <input type="text" 
+                               id="card_number" 
+                               name="card_number"
+                               maxlength="23"
+                               pattern="[0-9 ]{13,23}"
+                               oninput="formatCardNumber(this)"
+                               value="{{ form_data.card_number|default:'' }}"
+                               placeholder="1234 5678 9012 3456"
+                               required>
+                        <div class="card-info">Enter your card number (13-19 digits, spaces will be added automatically)</div>
+                        <div class="error-message">Please enter a valid card number (13-19 digits)</div>
+                    </div>
+
+                    <div class="expiry-cvv-group">
+                        <div class="form-group {% if form_data.expiry_date and not form_data.expiry_date|date:'Y-m' %}has-error{% endif %}">
+                            <label for="expiry_date">Expiry Date</label>
+                            <input type="month" 
+                                   id="expiry_date" 
+                                   name="expiry_date"
+                                   min="{{ today|date:'Y-m' }}"
+                                   value="{{ form_data.expiry_date|default:'' }}"
+                                   required>
+                            <div class="error-message">Please enter a valid expiry date in YYYY-MM format</div>
+                        </div>
+
+                        <div class="form-group {% if form_data.cvv and not form_data.cvv|length >= 3 %}has-error{% endif %}">
+                            <label for="cvv">CVV</label>
+                            <input type="password" 
+                                   id="cvv" 
+                                   name="cvv"
+                                   maxlength="4"
+                                   pattern="[0-9]{3,4}"
+                                   value="{{ form_data.cvv|default:'' }}"
+                                   placeholder="123"
+                                   required>
+                            <div class="error-message">Please enter a valid CVV (3-4 digits)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-button">Submit Booking Request</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

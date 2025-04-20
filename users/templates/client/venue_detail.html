@@ -247,7 +247,7 @@
                     </div>
                 </div>
 
-                <a href="#" class="book-button">Book This Venue</a>
+                <a href="{% url 'users:venue_booking' venue_id=venue.id %}" class="book-button">Book This Venue</a>
             </div>
         </div>
     </div>

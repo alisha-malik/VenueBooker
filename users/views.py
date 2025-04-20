@@ -1,9 +1,11 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
+from .forms import BookingForm
+from datetime import datetime, timedelta
 
 def register(request):
     if request.method == 'POST':
@@ -200,3 +202,120 @@ def user_logout(request):
     request.session.flush()
     messages.success(request, "You have been logged out")
     return redirect('users:login')
+
+def venue_booking(request, venue_id):
+    if request.method == 'POST':
+        # Get form data
+        start_date = request.POST.get('start_date')
+        start_time = request.POST.get('start_time')
+        end_date = request.POST.get('end_date')
+        end_time = request.POST.get('end_time')
+        method = request.POST.get('method')
+        card_number = request.POST.get('card_number')
+        expiry_date = request.POST.get('expiry_date')
+        cvv = request.POST.get('cvv')
+
+        # Validate required fields
+        if not all([start_date, start_time, end_date, end_time, method, card_number, expiry_date, cvv]):
+            messages.error(request, 'All fields are required')
+            return render(request, 'client/venue_booking.html', {
+                'venue': get_object_or_404(Venue, venue_id=venue_id),
+                'today': datetime.now().date(),
+                'form_data': request.POST
+            })
+
+        try:
+            # Convert dates and times to datetime objects
+            start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
+            end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
+            expiry_date_obj = datetime.strptime(expiry_date, "%Y-%m").date()
+
+            # Validate booking dates
+            min_booking_date = datetime.now() + timedelta(days=5)
+            if start_datetime < min_booking_date:
+                messages.error(request, 'Booking must be at least 5 days in advance')
+                return render(request, 'client/venue_booking.html', {
+                    'venue': get_object_or_404(Venue, venue_id=venue_id),
+                    'today': datetime.now().date(),
+                    'form_data': request.POST
+                })
+
+            if end_datetime <= start_datetime:
+                messages.error(request, 'End time must be after start time')
+                return render(request, 'client/venue_booking.html', {
+                    'venue': get_object_or_404(Venue, venue_id=venue_id),
+                    'today': datetime.now().date(),
+                    'form_data': request.POST
+                })
+
+            duration = end_datetime - start_datetime
+            if duration.total_seconds() < 3600:
+                messages.error(request, 'Booking duration must be at least 1 hour')
+                return render(request, 'client/venue_booking.html', {
+                    'venue': get_object_or_404(Venue, venue_id=venue_id),
+                    'today': datetime.now().date(),
+                    'form_data': request.POST
+                })
+
+            # Validate card expiry
+            if expiry_date_obj < datetime.now().date():
+                messages.error(request, 'Card has expired')
+                return render(request, 'client/venue_booking.html', {
+                    'venue': get_object_or_404(Venue, venue_id=venue_id),
+                    'today': datetime.now().date(),
+                    'form_data': request.POST
+                })
+
+            # Validate card number
+            card_number = ''.join(filter(str.isdigit, card_number))
+            if not (13 <= len(card_number) <= 19):
+                messages.error(request, 'Card number must be between 13 and 19 digits')
+                return render(request, 'client/venue_booking.html', {
+                    'venue': get_object_or_404(Venue, venue_id=venue_id),
+                    'today': datetime.now().date(),
+                    'form_data': request.POST
+                })
+
+            # Validate CVV
+            if not (3 <= len(cvv) <= 4):
+                messages.error(request, 'CVV must be 3 or 4 digits')
+                return render(request, 'client/venue_booking.html', {
+                    'venue': get_object_or_404(Venue, venue_id=venue_id),
+                    'today': datetime.now().date(),
+                    'form_data': request.POST
+                })
+
+            # Create booking record
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO bookings 
+                    (venue_id, client_id, start_datetime, end_datetime, 
+                     payment_method, card_last_four, card_expiry, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, [
+                    venue_id,
+                    request.session.get('user_id'),
+                    start_datetime,
+                    end_datetime,
+                    method,
+                    card_number[-4:],
+                    expiry_date,
+                    'pending'
+                ])
+
+            messages.success(request, 'Booking request submitted successfully!')
+            return redirect('users:client_dashboard')
+
+        except Exception as e:
+            messages.error(request, 'An error occurred while processing your booking. Please try again.')
+            return render(request, 'client/venue_booking.html', {
+                'venue': get_object_or_404(Venue, venue_id=venue_id),
+                'today': datetime.now().date(),
+                'form_data': request.POST
+            })
+
+    # GET request - show booking form
+    return render(request, 'client/venue_booking.html', {
+        'venue': get_object_or_404(Venue, venue_id=venue_id),
+        'today': datetime.now().date()
+    })
