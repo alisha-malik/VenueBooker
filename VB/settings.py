@@ -137,3 +137,6 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '184.64.40.52']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/users/login/'
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply@venuebooker.com'

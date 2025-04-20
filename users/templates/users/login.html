@@ -168,7 +168,9 @@
 
     {% if messages %}
       {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% if "login" in message.tags or "error" in message.tags %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endif %}
       {% endfor %}
     {% endif %}
 

@@ -4,67 +4,89 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import datetime, timedelta
 import sys
+from django.core.mail import send_mail
+from django.conf import settings
+
+def send_and_log_notification(cursor, email_type, to_email, user_name, venue_name, booking_id, venue_id, user_id, payment_id=None, start_dt=None, end_dt=None):
+    # Compose email based on type
+    if email_type == "Booking Confirmation":
+        subject = "Venue Booking Confirmation"
+        message = (
+            f"Hi {user_name},\n\n"
+            f"Your booking for '{venue_name}' is confirmed!\n"
+            f"Start: {start_dt.strftime('%Y-%m-%d %H:%M')}\n"
+            f"End: {end_dt.strftime('%Y-%m-%d %H:%M')}\n\n"
+            "Thank you for using VenueBooker!"
+        )
+    elif email_type == "Reminder":
+        subject = "Upcoming Booking Reminder"
+        message = (
+            f"Hi {user_name},\n\n"
+            f"This is a reminder of your upcoming booking at '{venue_name}'.\n"
+            f"Start: {start_dt.strftime('%Y-%m-%d %H:%M')}\n"
+            f"End: {end_dt.strftime('%Y-%m-%d %H:%M')}\n\n"
+            "We look forward to seeing you!"
+        )
+    elif email_type == "Cancellation":
+        subject = "Venue Booking Cancellation"
+        message = (
+            f"Hi {user_name},\n\n"
+            f"Your booking for '{venue_name}' has been successfully cancelled.\n\n"
+            "We hope to see you again soon!"
+        )
+    else:
+        return
+
+    # Send the email
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [to_email],
+        fail_silently=False
+    )
+
+    # Log the notification in the database
+    cursor.execute("""
+        INSERT INTO notification (booking_id, venue_id, user_id, payment_id, notification_type)
+        VALUES (%s, %s, %s, %s, %s)
+    """, [booking_id, venue_id, user_id, payment_id, email_type])
+
+def send_upcoming_booking_reminders():
+    now = timezone.now()
+    reminder_window_start = now + timedelta(days=2)
+    reminder_window_end = reminder_window_start + timedelta(days=1)
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT b.booking_id, b.start_date, b.end_date, b.venue_id, v.name,
+                   u.user_id, u.first_name, u.last_name, u.email, b.payment_id
+            FROM booking b
+            JOIN venue v ON b.venue_id = v.venue_id
+            JOIN users u ON b.user_id = u.user_id
+            WHERE b.start_date BETWEEN %s AND %s
+        """, [reminder_window_start, reminder_window_end])
+
+        for row in cursor.fetchall():
+            booking_id, start_dt, end_dt, venue_id, venue_name, user_id, first, last, email, payment_id = row
+            user_name = f"{first} {last}"
+
+            send_and_log_notification(
+                cursor,
+                email_type="Reminder",
+                to_email=email,
+                user_name=user_name,
+                venue_name=venue_name,
+                booking_id=booking_id,
+                venue_id=venue_id,
+                user_id=user_id,
+                payment_id=payment_id,
+                start_dt=start_dt,
+                end_dt=end_dt
+            )
+
+    print("[Reminder Job] Sent reminders for bookings 2 days away.")
         
-def client_dashboard(request):
-    user_id = request.session.get('user_id')
-    print(f"[DEBUG] Starting vendor_dashboard for user_id: {user_id}", flush=True)
-
-    if not user_id:
-        messages.error(request, "You must be logged in to view this page.")
-        return redirect('users:login')
-
-    try:
-        venues = []
-
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT v.venue_id, v.name, v.rate, v.status, v.image_url, v.description, 
-                        v.capacity, GROUP_CONCAT(vc.category), vc.availability_type
-                FROM venue v
-                LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
-                GROUP BY v.venue_id, vc.availability_type
-                ORDER BY v.name
-            """,)
-
-            venue_rows = cursor.fetchall()
-            print(f"[DEBUG] Number of venues fetched: {len(venue_rows)}", flush=True)
-
-
-            for row in venue_rows:
-                image_url = row[4]
-                if image_url:
-                    # Ensure the URL starts with /media/
-                    if not image_url.startswith('/media/'):
-                        image_url = f'/media/{image_url}'
-                    
-                    # Convert to absolute URL for templates
-                    image_url = request.build_absolute_uri(image_url)
-
-                venue = {
-                    'id': row[0],
-                    'name': row[1],
-                    'price': float(row[2]) if row[2] else 0.0,
-                    'status': row[3],
-                    'image_url': image_url,
-                    'description': row[5],
-                    'capacity': row[6],
-                    'categories': row[7].split(',') if row[7] else [],
-                    'availability': row[8] or 'Full-Year'
-                }
-                venues.append(venue)
-
-        has_venues = len(venues) > 0
-
-        return render(request, 'client/c_dashboard.html', {
-            'venues': venues,
-            'has_venues': has_venues
-        })
-
-    except Exception as e:
-        print(f"[DEBUG] client_dashboard error → {e}", flush=True)
-        messages.error(request, "Could not load dashboard.")
-        return redirect('users:login')
-    
 def client_dashboard(request):
     user_id = request.session.get('user_id')
     print(f"[DEBUG] Starting client_dashboard for user_id: {user_id}", flush=True)
@@ -261,7 +283,8 @@ def venue_booking(request, venue_id):
                     v.capacity, v.street, v.city, v.province, v.postal_code,
                     GROUP_CONCAT(DISTINCT vc.category) as categories,
                     vc.availability_type,
-                    u.first_name, u.last_name, u.email, u.phone
+                    u.first_name, u.last_name, u.email, u.phone,
+                    v.user_id
                 FROM venue v
                 LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
                 LEFT JOIN users u ON v.user_id = u.user_id
@@ -274,6 +297,16 @@ def venue_booking(request, venue_id):
             if not row:
                 messages.error(request, "Venue not found.")
                 return redirect('users:client_dashboard')
+
+            # Get client information for email notifications
+            cursor.execute("""
+                SELECT first_name, last_name, email
+                FROM users
+                WHERE user_id = %s
+            """, [user_id])
+            client_info = cursor.fetchone()
+            client_name = f"{client_info[0]} {client_info[1]}"
+            client_email = client_info[2]
 
             if request.method == 'POST':
                 try:
@@ -342,8 +375,30 @@ def venue_booking(request, venue_id):
                                 venue_id, user_id, start_date, end_date, payment_id
                             ) VALUES (%s, %s, %s, %s, %s)
                         """, [venue_id, user_id, start_dt, end_dt, payment_id])
+                        
+                        booking_id = cursor.lastrowid
+                        print(f"[DEBUG] Booking record created with ID: {booking_id}", flush=True)
+                        
+                        # Send booking confirmation email
+                        venue_name = row[1]
+                        vendor_id = row[17]
+                        
+                        send_and_log_notification(
+                            cursor, 
+                            "Booking Confirmation", 
+                            client_email,
+                            client_name,
+                            venue_name,
+                            booking_id,
+                            venue_id,
+                            user_id,
+                            payment_id,
+                            start_dt,
+                            end_dt
+                        )
 
                     connection.commit()
+                    messages.success(request, "Venue booked successfully! A confirmation email has been sent.")
                     return redirect('users:client_dashboard')
 
                 except ValueError as e:
@@ -402,6 +457,17 @@ def view_bookings(request):
         current_datetime = timezone.now()
         min_cancel_date = current_datetime + timedelta(days=5)
         
+        # Get client information for email notifications
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT first_name, last_name, email
+                FROM users
+                WHERE user_id = %s
+            """, [user_id])
+            client_info = cursor.fetchone()
+            client_name = f"{client_info[0]} {client_info[1]}"
+            client_email = client_info[2]
+        
         # Handle booking cancellation
         if request.method == 'POST' and 'cancel_booking' in request.POST:
             booking_id = request.POST.get('booking_id')
@@ -409,8 +475,9 @@ def view_bookings(request):
             with connection.cursor() as cursor:
                 # Check if booking exists and meets cancellation criteria
                 cursor.execute("""
-                    SELECT b.booking_id, b.start_date 
+                    SELECT b.booking_id, b.start_date, b.venue_id, v.name, b.payment_id, b.user_id 
                     FROM booking b
+                    JOIN venue v ON b.venue_id = v.venue_id 
                     WHERE b.booking_id = %s 
                     AND b.user_id = %s
                     AND b.start_date >= %s
@@ -419,12 +486,33 @@ def view_bookings(request):
                 booking = cursor.fetchone()
                 
                 if booking:
-                    # Delete the booking
+                    # Get booking details for cancellation email
+                    booking_id = booking[0]
+                    venue_id = booking[2]
+                    venue_name = booking[3]
+                    payment_id = booking[4]
+                    
+                    # Format the cancellation email before deleting from the database
+                    send_and_log_notification(
+                        cursor,
+                        "Cancellation",
+                        client_email,
+                        client_name,
+                        venue_name,
+                        booking_id,
+                        venue_id,
+                        user_id,
+                        payment_id
+                    )
+
                     cursor.execute("""
                         DELETE FROM booking 
                         WHERE booking_id = %s
                     """, [booking_id])
-                    messages.success(request, "Booking successfully cancelled.")
+
+                    
+                    connection.commit()
+                    messages.success(request, "Booking successfully cancelled. A confirmation email has been sent.")
                     return redirect('users:view_bookings')
                 else:
                     messages.error(request, "Cannot cancel booking. Either it doesn't exist or it's within 5 days.")
