@@ -182,6 +182,11 @@
         <input type="password" id="password" name="password" required placeholder=" ">
         <label for="password">Password</label>
       </div>
+
+      <div style="text-align:right; margin-top:-10px; margin-bottom:15px;">
+        <a href="{% url 'password_reset' %}" style="font-size:0.9rem; color:#3498db;">Forgot Password?</a>
+      </div>
+
       <div class="form-group">
         <select name="user_type" required>
           <option value="Client">Client</option>

@@ -2,81 +2,128 @@
 <html lang="en">
 {% load static %}
 <head>
+    <!-- Adding this meta tag to ensure the page is responsive on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>Vendor Dashboard | VenueBooker</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f7f7f7;
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9f9;
             margin: 0;
-            padding: 2rem;
-            position: relative;
+            padding: 0;
         }
 
         h1, h2, h3 {
             color: #2c3e50;
         }
 
-        .dashboard-header {
-            margin-bottom: 2rem;
+        /* Header Styles */
+        .top-header {
+            background-color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logo-link {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         .profile-icon {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             font-size: 1.8rem;
             text-decoration: none;
-            color: #2c3e50;
-            background-color: #eaeaea;
-            padding: 0.5rem 0.8rem;
+            color: white;
+            background-color: #3498db;
+            padding: 0.6rem 0.9rem;
             border-radius: 50%;
-            transition: background-color 0.2s;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            transition: background 0.3s;
         }
 
         .profile-icon:hover {
-            background-color: #ccc;
+            background-color: #2980b9;
         }
 
-        /* Navigation Tabs */
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: background 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .dashboard-header {
+            margin: 2rem auto 1.5rem;
+            text-align: center;
+            padding: 0 2rem;
+        }
+
         .dashboard-nav {
             display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            border-bottom: 2px solid #ddd;
             margin-bottom: 2rem;
-            border-bottom: 1px solid #ddd;
         }
 
         .nav-tab {
-            padding: 0.8rem 1.5rem;
-            margin-right: 0.5rem;
-            background-color: #eee;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
+            padding: 1rem 1.5rem;
+            background-color: #ecf0f1;
+            margin: 0 0.3rem;
+            border-radius: 8px 8px 0 0;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background-color 0.3s;
         }
 
         .nav-tab.active {
-            background-color: white;
-            border-bottom: 1px solid white;
-            margin-bottom: -1px;
-            font-weight: bold;
+            background-color: #fff;
+            border-bottom: 3px solid #3498db;
+            font-weight: 600;
         }
 
         .nav-tab:hover:not(.active) {
-            background-color: #e0e0e0;
+            background-color: #d0d7db;
         }
 
-        /* Tab Content */
         .tab-content {
             display: none;
+            animation: fadeIn 0.4s ease-in-out;
+            padding: 0 2rem;
         }
 
         .tab-content.active {
             display: block;
         }
 
-        /* Venue Grid */
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+
         .venue-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -86,169 +133,119 @@
         .venue-card {
             background-color: white;
             padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s ease;
-            display: flex;
-            flex-direction: column;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             text-decoration: none;
             color: inherit;
         }
 
         .venue-card:hover {
-            transform: scale(1.03);
-        }
-
-        .venue-card img {
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .venue-card h3 {
-            margin-top: 0;
-            color: #34495e;
-        }
-
-        .venue-card .meta {
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-
-        .venue-card .meta strong {
-            color: #2c3e50;
-        }
-
-        .venue-card .tags {
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .add-card {
-            background-color: #eeeeee;
-            color: #888;
+            font-size: 3rem;
+            background: linear-gradient(to right, #bdc3c7, #ecf0f1);
+            color: #555;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
-            cursor: pointer;
-            border-radius: 10px;
-            transition: background-color 0.2s ease;
-        }
-
-        .add-card:hover {
-            background-color: #dcdcdc;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-        }
-
-        .empty-state p {
-            color: #666;
-            margin-bottom: 1rem;
+            height: 100%;
         }
 
         .primary-btn {
-            display: inline-block;
-            background-color: #3498db;
+            background: linear-gradient(to right, #3498db, #2980b9);
             color: white;
-            padding: 0.8rem 1.5rem;
-            border-radius: 5px;
+            padding: 0.7rem 1.2rem;
+            border-radius: 6px;
             text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.2s;
+            display: inline-block;
+            margin-top: 1rem;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transition: background 0.3s;
         }
 
         .primary-btn:hover {
-            background-color: #2980b9;
+            background: #2980b9;
         }
 
         .logout {
             margin-top: 2rem;
-            display: inline-block;
-            color: #555;
+            display: block;
+            text-align: center;
+            color: #fff;
+            background-color: #7f8c8d;
+            padding: 0.7rem 1.5rem;
             text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            background-color: #eee;
-            transition: background-color 0.2s;
+            border-radius: 6px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            transition: background 0.3s;
         }
 
         .logout:hover {
-            background-color: #ddd;
+            background-color: #636e72;
         }
 
-        /* Paystubs and Booking History Tables */
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 2rem;
+            margin-top: 1rem;
+            font-size: 0.95rem;
         }
 
         .data-table th, .data-table td {
-            padding: 12px 15px;
+            padding: 0.9rem;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .data-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+            background-color: #ecf0f1;
+            color: #2c3e50;
         }
 
         .data-table tr:hover {
-            background-color: #f5f5f5;
+            background-color: #eef6fb;
         }
 
-        /* Messages */
-        .message-list {
-            list-style: none;
-            padding: 0;
+        .empty-state {
+            background-color: #ecf0f1;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            color: #555;
         }
 
         .message-item {
             background-color: white;
             padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             margin-bottom: 1rem;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .message-sender {
-            font-weight: bold;
-        }
-
-        .message-date {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .message-preview {
-            color: #444;
         }
     </style>
 </head>
 <body>
-    <!-- Profile icon in top-right corner -->
-    <a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
+    <!-- Top Header -->
+    <header class="top-header">
+        <div class="logo-title">
+            <a href="/" class="logo-link">VenueBooker</a>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
+            <a href="{% url 'users:logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </header>
 
     <div class="dashboard-header">
         <h1>Welcome to Your Vendor Dashboard</h1>
-        <p>Hello, {{ vendor_name }}!</p>
+        <p style="color: #444; font-size: 1.1rem;">
+            Manage your venue listings, view bookings, and communicate with clients – all in one place.
+        </p>
     </div>
 
     <!-- Navigation Tabs -->
@@ -290,7 +287,7 @@
                     </a>
                 {% endfor %}
 
-                <a href="{% url 'users:posting' %}" class="add-card">+</a>
+                <a href="{% url 'users:posting' %}" class="venue-card add-card">+</a>
             </div>
         {% else %}
             <div class="empty-state">
@@ -303,7 +300,7 @@
     <!-- Paystubs Tab -->
     <div id="paystubs" class="tab-content">
         <h2>Your Paystubs</h2>
-        
+
         {% if paystubs %}
             <table class="data-table">
                 <thead>
@@ -340,7 +337,7 @@
     <!-- Booking History Tab -->
     <div id="bookings" class="tab-content">
         <h2>Booking History</h2>
-        
+
         {% if bookings %}
             <table class="data-table">
                 <thead>
@@ -377,7 +374,7 @@
     <!-- Messages Tab -->
     <div id="messages" class="tab-content">
         <h2>Messages</h2>
-        
+
         {% if messages %}
             <ul class="message-list">
                 {% for message in messages %}
@@ -398,21 +395,14 @@
         {% endif %}
     </div>
 
-    <a href="{% url 'users:logout' %}" class="logout">Logout</a>
-
     <script>
         function showTab(tabId) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Deactivate all tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Activate selected tab
+            const allTabs = document.querySelectorAll('.tab-content');
+            const navTabs = document.querySelectorAll('.nav-tab');
+
+            allTabs.forEach(tab => tab.classList.remove('active'));
+            navTabs.forEach(tab => tab.classList.remove('active'));
+
             document.getElementById(tabId).classList.add('active');
             event.currentTarget.classList.add('active');
         }
