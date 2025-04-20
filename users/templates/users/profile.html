@@ -1,55 +1,130 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Profile</title>
+    <title>User Profile</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 3rem 1rem;
+        }
+
+        .profile-container {
+            display: flex;
+            flex-direction: row;
+            max-width: 850px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .profile-container:hover {
+            transform: translateY(-4px);
+        }
+
+        .profile-image {
+            width: 40%;
+            background-color: #ecf0f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            font-size: 2rem;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .profile-info {
+            width: 60%;
+            padding: 2rem;
+        }
+
+        .profile-info h2 {
+            margin-top: 0;
+            margin-bottom: 0.3rem;
+            color: #2c3e50;
+        }
+
+        .profile-info em {
+            font-size: 1rem;
+            color: #7f8c8d;
+        }
+
+        .info-block {
+            margin-top: 1.8rem;
+        }
+
+        .info-block p {
+            margin: 0.7rem 0;
+            font-size: 1.05rem;
+            color: #34495e;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
         .btn {
             display: inline-block;
-            padding: 0.6rem 1.2rem;
+            padding: 0.65rem 1.4rem;
             background-color: #3498db;
             color: white;
             text-decoration: none;
-            border-radius: 5px;
-            margin-top: 1rem;
-            transition: background-color 0.2s ease;
+            border-radius: 8px;
+            margin-top: 2rem;
+            margin-right: 1rem;
+            transition: background-color 0.3s ease;
+            font-size: 0.95rem;
         }
 
         .btn:hover {
             background-color: #2980b9;
         }
 
-        .logout-link {
-            margin-left: 1rem;
-            background-color: #e74c3c;
-        }
+        @media (max-width: 768px) {
+            .profile-container {
+                flex-direction: column;
+            }
 
-        .logout-link:hover {
-            background-color: #c0392b;
+            .profile-image, .profile-info {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>User Profile</h1>
-    
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-    
-    <div>
-        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Phone:</strong> {{ user.phone }}</p>
-        <p><strong>Account Type:</strong> {{ user.user_type }}</p>
+
+<div class="profile-container">
+    <!-- Left: Profile Image Placeholder -->
+    <div class="profile-image">
+        {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
     </div>
 
-    {% if user.user_type == "Vendor" %}
-        <a href="{% url 'users:vendor_dashboard' %}" class="btn">Back to Vendor Dashboard</a>
-    {% elif user.user_type == "Client" %}
-        <a href="{% url 'users:client_dashboard' %}" class="btn">Back to Client Dashboard</a>
-    {% endif %}
+    <!-- Right: Profile Details -->
+    <div class="profile-info">
+        <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+        <p><em>{{ user.user_type }}</em></p>
 
-    <a href="{% url 'users:logout' %}" class="btn logout-link">Logout</a>
+        <div class="info-block">
+            <p><span class="label">Email:</span> {{ user.email }}</p>
+            <p><span class="label">Phone:</span> {{ user.phone }}</p>
+        </div>
+
+        {% if user.user_type == "Vendor" %}
+            <a href="{% url 'users:vendor_dashboard' %}" class="btn">Go to Vendor Dashboard</a>
+        {% elif user.user_type == "Client" %}
+            <a href="{% url 'users:client_dashboard' %}" class="btn">Go to Client Dashboard</a>
+        {% endif %}
+    </div>
+</div>
+
 </body>
 </html>
+
