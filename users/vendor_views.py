@@ -210,7 +210,7 @@ def edit_venue(request, venue_id):
 
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT name, status, rate, street, city, province, postal_code, user_id, image_url
+            SELECT name, status, rate, street, city, province, postal_code, user_id, image_url, description
             FROM venue
             WHERE venue_id = %s
         """, [venue_id])
@@ -261,6 +261,7 @@ def edit_venue(request, venue_id):
         postal_code = request.POST.get('postal_code', '').strip().upper()
         selected_categories = request.POST.getlist('categories')
         availability = request.POST.get('availability_type', 'Full-Year')
+        description = request.POST.get('description', '').strip()
 
         # loading image information from the database
         image = request.FILES.get('image')
@@ -272,6 +273,8 @@ def edit_venue(request, venue_id):
         field_errors = {}
         if not name:
             field_errors['name'] = "Venue name is required."
+        if not description:
+            field_errors['description'] = "Description is required."
         if not rate.replace('.', '', 1).isdigit():
             field_errors['rate'] = "Enter a valid number for rate."
         if not street:
@@ -298,7 +301,8 @@ def edit_venue(request, venue_id):
                 'has_bookings': has_bookings,
                 'selected_categories': selected_categories,
                 'availability_type': availability,
-                'image_url': current_image_url
+                'image_url': current_image_url,
+                'description': description
             }
             return render(request, 'vendor/edit_posting.html', {
                 'venue': venue,
@@ -332,9 +336,9 @@ def edit_venue(request, venue_id):
                 cursor.execute("""
                     UPDATE venue
                     SET name=%s, status=%s, rate=%s, street=%s, city=%s,
-                        province=%s, postal_code=%s, image_url=%s
+                        province=%s, postal_code=%s, image_url=%s, description=%s
                     WHERE venue_id = %s
-                """, [name, status, float(rate), street, city, province, postal_code, image_url, venue_id])
+                """, [name, status, float(rate), street, city, province, postal_code, image_url, description, venue_id])
 
                 cursor.execute("DELETE FROM venue_category WHERE venue_id = %s", [venue_id])
                 for category in selected_categories:
@@ -362,7 +366,8 @@ def edit_venue(request, venue_id):
         'has_bookings': has_bookings,
         'selected_categories': current_categories,
         'availability_type': availability_type,
-        'image_url': row[8]  # Include image_url in the venue data
+        'image_url': row[8],
+        'description': row[9]
     }
 
     return render(request, 'vendor/edit_posting.html', {
@@ -408,3 +413,75 @@ def delete_venue(request, venue_id):
         print(f"[DEBUG] Venue delete error: {e}")
 
     return redirect('users:vendor_dashboard')
+
+def vendor_booking_history(request):
+    user_id = request.session.get('user_id')
+
+    if not user_id:
+        messages.error(request, "You must be logged in to view this page.")
+        return redirect('users:login')
+
+    context = {"venue_bookings": []}
+
+    try:
+        with connection.cursor() as cursor:
+            # Get all venues owned by the current vendor that have bookings
+            cursor.execute("""
+                SELECT DISTINCT v.venue_id, v.name, v.image_url, v.city
+                FROM venue v
+                JOIN booking b ON v.venue_id = b.venue_id
+                WHERE v.user_id = %s
+                ORDER BY v.name
+            """, [user_id])
+            venues = cursor.fetchall()
+
+            for venue_id, venue_name, venue_image, venue_city in venues:
+                # Get bookings for each venue
+                cursor.execute("""
+                    SELECT CONCAT(u.first_name, ' ', u.last_name) AS client_name,
+                           b.start_date, b.end_date, 
+                           p.method AS payment_method, 
+                           p.card_last_four,
+                           b.booking_id
+                    FROM booking b
+                    JOIN users u ON b.user_id = u.user_id
+                    JOIN payment p ON b.payment_id = p.payment_id
+                    WHERE b.venue_id = %s
+                    ORDER BY b.start_date DESC
+                """, [venue_id])
+                bookings = cursor.fetchall()
+
+                venue_bookings = []
+                for row in bookings:
+                    booking_data = {
+                        "user_name": row[0],
+                        "start_date": row[1],
+                        "end_date": row[2],
+                        "payment_method": row[3],
+                        "card_last_four": row[4],
+                        "booking_id": row[5]
+                    }
+                    venue_bookings.append(booking_data)
+
+                # Build absolute URL for image
+                if venue_image:
+                    if not venue_image.startswith('/media/'):
+                        venue_image = f'/media/{venue_image}'
+                    venue_image_url = request.build_absolute_uri(venue_image)
+                else:
+                    venue_image_url = None
+
+                context["venue_bookings"].append({
+                    "venue_id": venue_id,
+                    "venue_name": venue_name,
+                    "venue_image": venue_image_url,
+                    "city": venue_city,
+                    "bookings": venue_bookings
+                })
+
+    except Exception as e:
+        print(f"[DEBUG] vendor_booking_history error → {e}", flush=True)
+        messages.error(request, "Could not load booking history.")
+        return redirect('users:vendor_dashboard')
+
+    return render(request, 'vendor/booking_history.html', context)

@@ -3,287 +3,346 @@
 {% load static %}
 <head>
     <meta charset="UTF-8">
-    <title>Client Dashboard | VenueBooker</title>
+    <title>Edit Venue | VenueBooker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --text-color: #2c3e50;
+            --light-bg: #f7f7f7;
+        }
+
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f7f7f7;
+            background-color: var(--light-bg);
             margin: 0;
-            padding: 2rem;
-            position: relative;
+            padding: 0;
+            color: var(--text-color);
         }
-        h1, h2, h3 {
-            color: #2c3e50;
-        }
-        .dashboard-header {
-            margin-bottom: 2rem;
-        }
-        .profile-icon {
-            position: absolute; top: 20px; right: 20px;
-            font-size: 1.8rem; text-decoration: none;
-            color: #2c3e50; background-color: #eaeaea;
-            padding: 0.5rem 0.8rem; border-radius: 50%;
-        }
-        .dashboard-nav {
+
+        .navbar {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
             display: flex;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #ddd;
+            justify-content: space-between;
+            align-items: center;
         }
-        .nav-tab {
-            padding: 0.8rem 1.5rem;
-            margin-right: 0.5rem;
-            background-color: #eee;
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.2rem;
+        }
+
+        .main-content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-top: 1.5rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
             border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        input.error-field, select.error-field, textarea.error-field {
+            border-color: #e74c3c;
+        }
+
+        .category-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .category-buttons label {
+            display: inline-flex;
+            align-items: center;
+            background-color: #f0f7ff;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            margin: 0;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .nav-tab.active {
-            background-color: white;
-            border-bottom: 1px solid white;
-            margin-bottom: -1px;
-            font-weight: bold;
-        }
-        .nav-tab:hover:not(.active) {
-            background-color: #e0e0e0;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .venue-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-        .venue-card {
-            background-color: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            display: flex;
-            flex-direction: column;
-            text-decoration: none;
-            color: inherit;
-            transition: transform 0.2s ease;
-        }
-        .venue-card:hover {
-            transform: scale(1.03);
-        }
-        .venue-card img {
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .venue-card h3 {
-            margin-top: 0;
-            color: #34495e;
-        }
-        .venue-card .meta {
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-        .venue-card .meta strong {
-            color: #2c3e50;
-        }
-        .venue-card .tags {
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-        }
-        .primary-btn {
-            display: inline-block;
-            background-color: #3498db;
+
+        .category-buttons label:hover {
+            background-color: var(--primary-color);
             color: white;
-            padding: 0.8rem 1.5rem;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-        .primary-btn:hover {
-            background-color: #2980b9;
         }
 
-        .filter-modal {
+        .category-buttons input[type="checkbox"] {
             display: none;
-            position: fixed;
-            z-index: 1000;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
         }
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            max-width: 600px;
-            width: 90%;
-            position: relative;
+
+        .category-buttons input[type="checkbox"]:checked + label {
+            background-color: var(--primary-color);
+            color: white;
         }
-        .modal-close {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 1.5rem;
-            background: none;
+
+        .submit-group {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
             border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-secondary {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e9ecef;
+        }
+
+        .back-to-dashboard {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-to-dashboard:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            color: #e74c3c;
+            margin-top: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+        }
+
+        #image-preview {
+            margin-top: 1rem;
+        }
+
+        #image-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
 <body>
-<a href="{% url 'users:profile' %}" class="profile-icon" title="View Profile">👤</a>
+    <nav class="navbar">
+        <a href="{% url 'users:vendor_dashboard' %}" class="navbar-brand">VenueBooker</a>
+        <div class="navbar-right">
+            <a href="{% url 'users:vendor_bookings' %}" class="btn btn-secondary">Booking History</a>
+            <a href="{% url 'users:profile' %}" class="profile-icon">👤</a>
+        </div>
+    </nav>
 
-<div class="dashboard-header">
-    <h1>Welcome to Your Client Dashboard</h1>
-    <p>Browse and book your perfect venue!</p>
-</div>
+    <div class="main-content">
+        <a href="{% url 'users:vendor_dashboard' %}" class="back-to-dashboard">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <div class="form-container">
+            <h1>Edit Venue</h1>
 
-<div class="dashboard-nav">
-    <div class="nav-tab active" onclick="showTab('venues')">Available Venues</div>
-</div>
-
-<div id="venues" class="tab-content active">
-    <h2>Available Venues</h2>
-
-    <button onclick="document.getElementById('filterModal').style.display = 'flex'">Open Filters</button>
-
-    <div class="filter-modal" id="filterModal">
-        <div class="modal-content">
-            <form method="get">
-                <button type="button" class="modal-close" onclick="document.getElementById('filterModal').style.display='none'">&times;</button>
-
-                <label for="availability">Availability</label>
-                <select name="availability_type" id="availability" onchange="toggleSeasonalOptions()">
-                    <option value="Full-Year" {% if field_values.availability_type == "Full-Year" %}selected{% endif %}>Full-Year</option>
-                    <option value="Seasonal" {% if field_values.availability_type == "Seasonal" %}selected{% endif %}>Seasonal</option>
-                </select>
-
-                <div id="seasonal-categories" style="display:none; margin-top:1rem;">
-                    <label>Select Seasonal Categories</label>
-                    <div class="category-buttons">
-                        {% for season in seasons %}
-                            <label>
-                                <input type="checkbox" name="categories" value="{{ season }}" 
-                                       {% if season in field_values.selected_categories %}checked{% endif %}>
-                                {{ season }}
-                            </label>
-                        {% endfor %}
-                    </div>
+            {% if venue.has_bookings %}
+                <div class="warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This venue has active bookings and cannot be edited or deleted.
                 </div>
+            {% endif %}
 
-                <label>Select Venue Categories</label>
-                <div class="category-buttons">
-                    {% for c in categories %}
-                        <label>
-                            <input type="checkbox" name="categories" value="{{ c }}" 
-                                   {% if c in field_values.selected_categories %}checked{% endif %}>
-                            {{ c }}
-                        </label>
-                    {% endfor %}
-                </div>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <label for="name">Venue Name</label>
+                <input type="text" name="name" id="name" value="{{ venue.name }}" class="{% if field_errors.name %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
+                {% if field_errors.name %}<div class="error">{{ field_errors.name }}</div>{% endif %}
+
+                <label for="image">Change Venue Image (JPG, PNG only)</label>
+                <input type="file" name="image" id="image" accept=".jpg,.jpeg,.png" onchange="previewImage(event)" class="{% if field_errors.image %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
+                {% if field_errors.image %}<div class="error">{{ field_errors.image }}</div>{% endif %}
+                <div id="image-preview"></div>
+
+                <label for="description">Short Description</label>
+                <textarea name="description" id="description" rows="3" class="{% if field_errors.description %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>{{ venue.description }}</textarea>
+                {% if field_errors.description %}<div class="error">{{ field_errors.description }}</div>{% endif %}
 
                 <label for="status">Status</label>
-                <select id="status" name="status">
-                    <option value="Active" {% if field_values.status == 'Active' %}selected{% endif %}>Active</option>
-                    <option value="Inactive" {% if field_values.status == 'Inactive' %}selected{% endif %}>Inactive</option>
-                    <option value="Under Maintenance" {% if field_values.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+                <select name="status" id="status" {% if venue.has_bookings %}disabled{% endif %}>
+                    <option value="Active" {% if venue.status == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if venue.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="Under Maintenance" {% if venue.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
                 </select>
 
                 <label for="rate">Hourly Rate ($)</label>
-                <input type="number" step="0.01" name="rate" id="rate" value="{{ field_values.rate }}">
+                <input type="number" step="0.01" name="rate" id="rate" value="{{ venue.rate }}" class="{% if field_errors.rate %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
+                {% if field_errors.rate %}<div class="error">{{ field_errors.rate }}</div>{% endif %}
 
                 <label for="street">Street</label>
-                <input type="text" name="street" id="street" value="{{ field_values.street }}">
+                <input type="text" name="street" id="street" value="{{ venue.street }}" class="{% if field_errors.street %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
+                {% if field_errors.street %}<div class="error">{{ field_errors.street }}</div>{% endif %}
 
                 <label for="city">City</label>
-                <input type="text" name="city" id="city" value="{{ field_values.city }}">
+                <input type="text" name="city" id="city" value="{{ venue.city }}" class="{% if field_errors.city %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
+                {% if field_errors.city %}<div class="error">{{ field_errors.city }}</div>{% endif %}
 
                 <label for="province">Province</label>
-                <select name="province" id="province">
-                    <option value="">All Provinces</option>
+                <select name="province" id="province" class="{% if field_errors.province %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
                     {% for p in provinces %}
-                        <option value="{{ p }}" {% if field_values.province == p %}selected{% endif %}>{{ p }}</option>
+                        <option value="{{ p }}" {% if venue.province == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+                {% if field_errors.province %}<div class="error">{{ field_errors.province }}</div>{% endif %}
+
+                <label for="postal_code">Postal Code</label>
+                <input type="text" name="postal_code" id="postal_code" value="{{ venue.postal_code }}" class="{% if field_errors.postal_code %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
+                {% if field_errors.postal_code %}<div class="error">{{ field_errors.postal_code }}</div>{% endif %}
+
+                <label>Select Venue Categories</label>
+                <div class="category-buttons">
+                    {% for c in all_categories %}
+                        <input type="checkbox" name="categories" value="{{ c }}" id="category-{{ forloop.counter }}" {% if c in venue.selected_categories %}checked{% endif %} {% if venue.has_bookings %}disabled{% endif %}>
+                        <label for="category-{{ forloop.counter }}">{{ c }}</label>
+                    {% endfor %}
+                </div>
+
+                <label for="availability_type">Availability</label>
+                <select name="availability_type" id="availability_type" {% if venue.has_bookings %}disabled{% endif %}>
+                    {% for option in availability_options %}
+                        <option value="{{ option }}" {% if venue.availability_type == option %}selected{% endif %}>{{ option }}</option>
                     {% endfor %}
                 </select>
 
-                <div style="margin-top: 1rem;">
-                    <button type="submit" class="primary-btn">Apply Filters</button>
-                    <a href="{% url 'users:client_dashboard' %}" class="primary-btn" style="background-color: #95a5a6; margin-left: 1rem;">Clear Filters</a>
-                </div>
+                {% if not venue.has_bookings %}
+                    <div class="submit-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <a href="{% url 'users:vendor_dashboard' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                {% endif %}
             </form>
         </div>
     </div>
 
-    {% if has_venues %}
-        <div class="venue-grid">
-            {% for venue in venues %}
-                <div class="venue-card">
-                    {% if venue.image_url %}
-                        <img src="{{ venue.image_url }}" alt="{{ venue.name }}">
-                    {% else %}
-                        <img src="{% static 'default-placeholder.png' %}" alt="No image available">
-                    {% endif %}
-                    <h3>{{ venue.name }}</h3>
-                    <p>{{ venue.description|truncatewords:20 }}</p>
-
-                    <div class="meta">
-                        <p><strong>Status:</strong> {{ venue.status }}</p>
-                        <p><strong>Rate:</strong> ${{ venue.price }}</p>
-                        <p><strong>Capacity:</strong> {{ venue.capacity }}</p>
-                        <p><strong>Availability:</strong> {{ venue.availability }}</p>
-                    </div>
-
-                    {% if venue.categories %}
-                        <div class="tags">
-                            <strong>Categories:</strong> {{ venue.categories|join:", " }}
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="empty-state">
-            <p>No venues match your selected filters.</p>
-            <a href="{% url 'users:client_dashboard' %}" class="primary-btn">View All Venues</a>
-        </div>
-    {% endif %}
-</div>
-
-<script>
-    function showTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        event.target.classList.add('active');
-    }
-
-    function toggleSeasonalOptions() {
-        const select = document.getElementById("availability");
-        const seasonal = document.getElementById("seasonal-categories");
-        seasonal.style.display = (select.value === "Seasonal") ? "block" : "none";
-    }
-
-    document.addEventListener("DOMContentLoaded", toggleSeasonalOptions);
-
-    window.onclick = function(event) {
-        const modal = document.getElementById('filterModal');
-        if (event.target === modal) modal.style.display = "none";
-    }
-</script>
+    <script>
+        function previewImage(event) {
+            const previewDiv = document.getElementById('image-preview');
+            const file = event.target.files[0];
+            previewDiv.innerHTML = '';
+            if (file) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.onload = () => URL.revokeObjectURL(img.src);
+                previewDiv.appendChild(img);
+            }
+        }
+    </script>
 </body>
 </html>

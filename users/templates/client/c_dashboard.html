@@ -112,7 +112,9 @@
             position: relative;
             flex: 1;
             min-width: 100px;
-            max-width: calc(100% - 250px); /* Adjusted space for buttons */
+            max-width: calc(100% - 250px);
+            display: flex;
+            align-items: center;
         }
 
         .search-icon {
@@ -142,8 +144,9 @@
             align-items: center;
             gap: 8px;
             flex-shrink: 0;
-            min-width: 220px; /* Adjusted minimum width for buttons */
+            min-width: 220px;
             justify-content: flex-end;
+            height: 40px;
         }
 
         .search-button,
