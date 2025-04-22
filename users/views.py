@@ -6,20 +6,25 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from .forms import BookingForm
 from datetime import datetime, timedelta
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.urls import reverse
+import secrets
+from django.conf import settings
 
 def register(request):
     if request.method == 'POST':
-        list(messages.get_messages(request))
-
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         phone = request.POST.get('phone', '').strip()
         email = request.POST.get('email', '').lower().strip()
-        user_type = request.POST.get('user_type', 'client')
         password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        user_type = request.POST.get('user_type', '').strip()
 
-        if not (phone.isdigit() and len(phone) == 10):
-            messages.error(request, "Phone must be 10 digits.")
+        # Validate passwords match
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match.")
             return render(request, 'users/register.html', {
                 'form_data': {
                     'first_name': first_name,
@@ -36,13 +41,23 @@ def register(request):
                 cursor.execute("SELECT 1 FROM users WHERE email = %s AND user_type = %s", [email, user_type])
                 if cursor.fetchone():
                     messages.error(request, f"This email is already registered as a {user_type}. If you forgot your password, you can reset it.")
-                    # Pass along email and user_type to the forgot password page
-                    return render(request, 'users/forgot_password.html', {
+                    return render(request, 'users/login.html', {
                         'email': email,
-                        'user_type': user_type
+                        'user_type': user_type,
+                        'show_forgot_password': True
                     })
 
-                # Proceed to create account (allowed if email is not registered with same user_type)
+                # Check if email exists with a different user type
+                cursor.execute("SELECT user_type FROM users WHERE email = %s", [email])
+                existing_user = cursor.fetchone()
+                if existing_user:
+                    messages.error(request, f"This email is already registered as a {existing_user[0]}. Please log in with your existing account.")
+                    return render(request, 'users/login.html', {
+                        'email': email,
+                        'user_type': existing_user[0]
+                    })
+
+                # Proceed to create account (allowed if email is not registered)
                 hashed_password = make_password(password)
                 cursor.execute("""
                     INSERT INTO users 
@@ -117,57 +132,60 @@ def user_login(request):
     return render(request, 'users/login.html')
 
 
-def forgot_password(request):
+def password_reset(request):
     if request.method == 'POST':
-        email = request.POST.get('email', '').lower().strip()
-        user_type = request.POST.get('user_type', '')
-        new_password = request.POST.get('new_password', '')
+        email = request.POST.get('email')
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
         
-        if not email or not user_type or not new_password:
-            messages.error(request, "All fields are required.")
-            return render(request, 'users/forgot_password.html', {
-                'email': email,
-                'user_type': user_type
-            })
-        
-        with connection.cursor() as cursor:
-            try:
-                # First check if the account exists
-                cursor.execute("SELECT 1 users WHERE email = %s AND user_type = %s", [email, user_type])
-                if not cursor.fetchone():
-                    messages.error(request, f"No {user_type} account found with this email.")
-                    return render(request, 'users/forgot_password.html', {
-                        'email': email,
-                        'user_type': user_type
-                    })
-                
-                # Update password
-                hashed_password = make_password(new_password)
+        try:
+            with connection.cursor() as cursor:
+                # Check if email exists in the database
                 cursor.execute("""
-                    UPDATE users SET password = %s 
-                    WHERE email = %s AND user_type = %s
-                """, [hashed_password, email, user_type])
+                    SELECT user_id, first_name, last_name, email, user_type
+                    FROM users WHERE email = %s
+                """, [email])
+                user_data = cursor.fetchone()
+
+                if not user_data:
+                    messages.error(request, "No account found with this email address.")
+                    return redirect('users:password_reset')
+
+                user_id, first_name, last_name, email, user_type = user_data
                 
-                messages.success(request, "Password has been reset! Please log in with your new password.")
-                return redirect('users:login')
+                # If we have a new password, update it
+                if new_password1 and new_password2:
+                    if new_password1 != new_password2:
+                        messages.error(request, "Passwords don't match.")
+                        return render(request, 'users/password_reset.html', {
+                            'email': email,
+                            'show_password_form': True
+                        })
+                    
+                    # Update the password in the database
+                    hashed_password = make_password(new_password1)
+                    cursor.execute("""
+                        UPDATE users 
+                        SET password = %s 
+                        WHERE user_id = %s
+                    """, [hashed_password, user_id])
+                    
+                    messages.success(request, "Your password has been reset successfully.")
+                    return redirect('users:login')
                 
-            except Exception as e:
-                messages.error(request, "Password reset failed. Please try again.")
-                print(f"Password reset error: {str(e)}")
-                return render(request, 'users/forgot_password.html', {
+                # If we only have an email, show the password form
+                return render(request, 'users/password_reset.html', {
                     'email': email,
-                    'user_type': user_type
+                    'show_password_form': True
                 })
+
+        except Exception as e:
+            print(f"[DEBUG] Password reset error: {str(e)}")
+            messages.error(request, "An error occurred while processing your request.")
+            return redirect('users:password_reset')
     
-    # If GET request or any other scenario, render the form
-    # Pre-populate with email and user_type if provided
-    email = request.GET.get('email', '')
-    user_type = request.GET.get('user_type', '')
-    
-    return render(request, 'users/forgot_password.html', {
-        'email': email,
-        'user_type': user_type
-    })
+    # GET request - show initial email form
+    return render(request, 'users/password_reset.html', {'show_password_form': False})
 
 def profile(request):
     user_id = request.session.get('user_id')

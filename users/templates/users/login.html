@@ -3,57 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login | Venue Booking</title>
+  <title>Login | VenueBooker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
-      --text-color: #333;
-      --light-accent: #f0f0f0;
-      --dark-accent: #2c3e50;
-      --highlight: #72bcd4;
-      --soft-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      --primary-color: #3498db;
+      --primary-dark: #2980b9;
+      --text-color: #2c3e50;
+      --light-bg: #f7f7f7;
     }
 
     body {
       font-family: 'Helvetica Neue', Arial, sans-serif;
-      color: var(--text-color);
+      background-color: var(--light-bg);
       margin: 0;
       padding: 0;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      background-image: linear-gradient(135deg, #d1f8e2, #d8f1ff, #ffe9cc);
     }
 
     .login-container {
       width: 100%;
-      max-width: 380px;
+      max-width: 420px;
       padding: 2.5rem;
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(8px);
+      background: white;
       border-radius: 12px;
-      box-shadow: var(--soft-shadow);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
       text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .logo i {
+      font-size: 2.2rem;
     }
 
     h1 {
       font-weight: 300;
-      font-size: 2.2rem;
+      font-size: 1.8rem;
       margin-bottom: 1.8rem;
-      color: var(--dark-accent);
-      letter-spacing: -0.5px;
+      color: var(--text-color);
     }
 
     form {
       display: flex;
       flex-direction: column;
-      gap: 1.8rem;
+      gap: 1.5rem;
       margin-top: 2rem;
+      width: 100%;
     }
 
     .form-group {
       position: relative;
+      width: 100%;
     }
 
     label {
@@ -64,49 +77,40 @@
       font-size: 0.9rem;
       transition: all 0.3s ease;
       pointer-events: none;
+      width: calc(100% - 2rem);
     }
 
-    input {
+    input, select {
       width: 100%;
       padding: 1.2rem 1rem 0.8rem;
-      border: none;
-      border-bottom: 1px solid #ddd;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
       font-size: 1rem;
-      background: transparent;
+      background: white;
       transition: all 0.3s ease;
+      box-sizing: border-box;
     }
 
     input:focus {
       outline: none;
-      border-bottom-color: var(--highlight);
+      border-color: var(--primary-color);
     }
 
     input:focus + label,
     input:not(:placeholder-shown) + label {
       top: 0.2rem;
       font-size: 0.7rem;
-      color: var(--highlight);
-    }
-
-    select {
-      width: 100%;
-      padding: 1.2rem 1rem 0.8rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 1rem;
-      background-color: white;
-      color: #333;
-      appearance: none;
-      transition: all 0.3s ease;
+      color: var(--primary-color);
     }
 
     select:focus {
       outline: none;
-      border-color: var(--highlight);
+      border-color: var(--primary-color);
     }
 
     button {
-      background-color: var(--dark-accent);
+      width: 100%;
+      background-color: var(--primary-color);
       color: white;
       border: none;
       padding: 1rem;
@@ -114,15 +118,14 @@
       font-size: 1rem;
       cursor: pointer;
       transition: all 0.3s ease;
-      margin-top: 1.5rem;
-      letter-spacing: 0.5px;
-      box-shadow: var(--soft-shadow);
+      margin-top: 1rem;
+      font-weight: 500;
+      box-sizing: border-box;
     }
 
     button:hover {
-      background-color: var(--highlight);
+      background-color: var(--primary-dark);
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
     }
 
     .alert {
@@ -130,7 +133,7 @@
       margin-bottom: 1.5rem;
       border-radius: 6px;
       font-size: 0.9rem;
-      background: rgba(255, 255, 255, 0.9);
+      background: white;
     }
 
     .alert-error {
@@ -143,6 +146,24 @@
       border-left: 4px solid #66bb6a;
     }
 
+    .forgot-password {
+      text-align: right;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+
+    .forgot-password a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .forgot-password a:hover {
+      color: var(--primary-dark);
+    }
+
     .register-link {
       margin-top: 2rem;
       font-size: 0.9rem;
@@ -150,20 +171,22 @@
     }
 
     .register-link a {
-      color: var(--highlight);
+      color: var(--primary-color);
       text-decoration: none;
       font-weight: 500;
-      transition: all 0.2s ease;
+      transition: color 0.2s;
     }
 
     .register-link a:hover {
-      color: var(--dark-accent);
-      text-decoration: underline;
+      color: var(--primary-dark);
     }
   </style>
 </head>
 <body>
   <div class="login-container">
+    <div class="logo">
+      <span>VenueBooker</span>
+    </div>
     <h1>Welcome Back</h1>
 
     {% if messages %}
@@ -185,8 +208,8 @@
         <label for="password">Password</label>
       </div>
 
-      <div style="text-align:right; margin-top:-10px; margin-bottom:15px;">
-        <a href="{% url 'password_reset' %}" style="font-size:0.9rem; color:#3498db;">Forgot Password?</a>
+      <div class="forgot-password">
+        <a href="{% url 'users:password_reset' %}">Forgot Password?</a>
       </div>
 
       <div class="form-group">

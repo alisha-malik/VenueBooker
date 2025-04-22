@@ -1,16 +1,14 @@
 from django.urls import path
 from . import views, client_views, vendor_views
-from django.contrib.auth import views as auth_views
-
 
 app_name = 'users'
 
 urlpatterns = [
-    path('register/', views.register, name='register'),
     path('login/', views.user_login, name='login'),
+    path('register/', views.register, name='register'),
     path('logout/', views.user_logout, name='logout'),
     path('profile/', views.profile, name='profile'),
-    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('password_reset/', views.password_reset, name='password_reset'),
 
     # Client URLs
     path('client/dashboard/', client_views.client_dashboard, name='client_dashboard'),
