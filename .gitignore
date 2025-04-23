@@ -3,7 +3,6 @@
 *.pyc
 __pycache__/
 local_settings.py
-media/
 staticfiles/
 
 # Virtual Environment

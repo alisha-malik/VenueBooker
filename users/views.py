@@ -11,6 +11,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 import secrets
 from django.conf import settings
+import random
 
 def register(request):
     if request.method == 'POST':
@@ -91,7 +92,7 @@ def user_login(request):
 
         with connection.cursor() as cursor:
             try:
-                # Fetch by email only, not user_type — we want to validate the type afterward
+                # Search by email only — we want to validate the type afterward
                 cursor.execute("""
                     SELECT user_id, first_name, last_name, phone, email, user_type, password
                     FROM users WHERE email = %s
@@ -139,72 +140,59 @@ def password_reset(request):
         
         try:
             with connection.cursor() as cursor:
-                # Check if email exists in the database
-                cursor.execute("""
-                    SELECT user_id, first_name, last_name, email, user_type
-                    FROM users WHERE email = %s
-                """, [email])
-                user_data = cursor.fetchone()
+                # First check if this is an email verification request
+                if not new_password1 and not new_password2:
+                    # Verify email exists
+                    cursor.execute("""
+                        SELECT user_id, first_name, last_name, email, user_type
+                        FROM users WHERE email = %s
+                    """, [email])
+                    user_data = cursor.fetchone()
 
-                if not user_data:
-                    messages.error(request, "No account found with this email address.")
-                    return redirect('users:password_reset')
+                    if not user_data:
+                        messages.error(request, "No account found with this email address.")
+                        return redirect('users:password_reset')
 
-                user_id, first_name, last_name, email, user_type = user_data
-                token = secrets.token_urlsafe(32)
+                    # Store email in session for verification
+                    request.session['reset_email'] = email
+                    messages.success(request, "Email verified. Please enter your new password.")
+                    return render(request, 'users/password_reset.html', {'show_password_form': True})
                 
-                # Update the user's reset token in the database
+                # This is the password update request
+                stored_email = request.session.get('reset_email')
+                
+                if not stored_email or email != stored_email:
+                    messages.error(request, "Please verify your email first.")
+                    return redirect('users:password_reset')
+                
+                # Validate passwords match
+                if new_password1 != new_password2:
+                    messages.error(request, "Passwords do not match.")
+                    return render(request, 'users/password_reset.html', {'show_password_form': True})
+                
+                # Hash the new password
+                hashed_password = make_password(new_password1)
+                
+                # Update the user's password
                 cursor.execute("""
                     UPDATE users 
-                    SET password_reset_token = %s 
-                    WHERE user_id = %s
-                """, [token, user_id])
+                    SET password = %s 
+                    WHERE email = %s
+                """, [hashed_password, email])
                 
-                # Compose and print the email
-                subject = "Password Reset Request"
-                message = f"""
-                Hi {first_name} {last_name},
-
-                You requested a password reset for your VenueBooker account.
-                Please click the link below to reset your password:
-
-                {request.build_absolute_uri(reverse('users:password_reset', kwargs={'token': token}))}
-
-                If you didn't request this, please ignore this email.
-
-                Best regards,
-                VenueBooker Team
-                """
+                # Clear the session data
+                del request.session['reset_email']
                 
-                # Print the email to terminal
-                print("\n" + "="*50)
-                print("Password Reset Email")
-                print("="*50)
-                print(f"To: {email}")
-                print(f"Subject: {subject}")
-                print("-"*50)
-                print(message)
-                print("="*50 + "\n")
-                
-                # Send the actual email
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
-                    fail_silently=False,
-                )
-                
-                messages.success(request, "Password reset link has been sent to your email.")
-                return redirect('users:password_reset_done')
+                messages.success(request, "Your password has been successfully reset. Please log in with your new password.")
+                return redirect('users:login')
 
         except Exception as e:
             print(f"[DEBUG] Password reset error: {str(e)}")
             messages.error(request, "An error occurred while processing your request.")
             return redirect('users:password_reset')
     
-    # GET request - show appropriate form
-    return render(request, 'users/password_reset.html', {'token': token})
+    # GET request - show initial password reset form
+    return render(request, 'users/password_reset.html')
 
 def profile(request):
     user_id = request.session.get('user_id')
