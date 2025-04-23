@@ -154,20 +154,23 @@ def client_dashboard(request):
         return redirect('users:login')
 
     # Initialize filter parameters from GET request for venue search
-    search_query = request.GET.get('search', '').strip()
-    category = request.GET.get('category', '').strip()
+    search_query = request.GET.get('venue_name', '').strip()
+    categories = request.GET.getlist('categories')  # Handle multiple categories
     province = request.GET.get('province', '').strip()
-    min_capacity = request.GET.get('min_capacity', '').strip()
-    max_rate = request.GET.get('max_rate', '').strip()
+    city = request.GET.get('city', '').strip()
+    street = request.GET.get('street', '').strip()
+    status = request.GET.get('status', 'Active').strip()  # Default to Active venues
+    rate = request.GET.get('rate', '').strip()  # Max hourly rate
+    availability_type = request.GET.get('availability_type', '').strip()
 
     # Build base SQL query to fetch venue information with LEFT JOIN for categories
     base_query = """
-        SELECT v.venue_id, v.name, v.rate, v.capacity, v.street, v.city, v.province, 
+        SELECT DISTINCT v.venue_id, v.name, v.rate, v.capacity, v.street, v.city, v.province, 
                v.postal_code, v.image_url, v.description, v.status,
-               GROUP_CONCAT(vc.category) as categories
+               GROUP_CONCAT(DISTINCT vc.category SEPARATOR ',') as categories
         FROM venue v
         LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
-        WHERE v.status = 'Active'
+        WHERE 1=1
     """
     query_params = []
 
@@ -176,63 +179,88 @@ def client_dashboard(request):
         base_query += " AND (v.name LIKE %s OR v.description LIKE %s)"
         query_params.extend([f'%{search_query}%', f'%{search_query}%'])
     
-    if category:
-        base_query += " AND vc.category = %s"
-        query_params.append(category)
+    if categories:
+        # Handle multiple categories using EXISTS
+        category_conditions = []
+        for category in categories:
+            category_conditions.append("EXISTS (SELECT 1 FROM venue_category vc2 WHERE vc2.venue_id = v.venue_id AND vc2.category = %s)")
+            query_params.append(category)
+        base_query += " AND (" + " OR ".join(category_conditions) + ")"
     
     if province:
         base_query += " AND v.province = %s"
         query_params.append(province)
     
-    if min_capacity:
-        base_query += " AND v.capacity >= %s"
-        query_params.append(int(min_capacity))
+    if city:
+        base_query += " AND v.city LIKE %s"
+        query_params.append(f'%{city}%')
     
-    if max_rate:
-        base_query += " AND v.rate <= %s"
-        query_params.append(float(max_rate))
+    if street:
+        base_query += " AND v.street LIKE %s"
+        query_params.append(f'%{street}%')
+    
+    if status:
+        base_query += " AND v.status = %s"
+        query_params.append(status)
+    
+    if rate:
+        try:
+            max_rate = float(rate)
+            base_query += " AND v.rate <= %s"
+            query_params.append(max_rate)
+        except ValueError:
+            pass  # Invalid rate value, ignore filter
 
-    # Group results by venue to handle multiple categories
-    base_query += " GROUP BY v.venue_id"
+    # Group results by venue and order by name
+    base_query += """
+        GROUP BY v.venue_id, v.name, v.rate, v.capacity, v.street, v.city, 
+                 v.province, v.postal_code, v.image_url, v.description, v.status
+        ORDER BY v.name ASC
+    """
 
     # Execute the main venue query and process results
     with connection.cursor() as cursor:
-        cursor.execute(base_query, query_params)
-        venues = []
-        for row in cursor.fetchall():
-            # Format image URL to ensure proper serving
-            image_url = row[8]
-            if image_url and not image_url.startswith('/media/'):
-                image_url = f'/media/{image_url}'
+        try:
+            cursor.execute(base_query, query_params)
+            venues = []
+            rows = cursor.fetchall()
+            
+            for row in rows:
+                # Format image URL to ensure proper serving
+                image_url = row[8]
+                if image_url and not image_url.startswith('/media/'):
+                    image_url = f'/media/{image_url}'
 
-            # Create venue dictionary with formatted data
-            venue = {
-                'id': row[0],
-                'name': row[1],
-                'rate': float(row[2]),
-                'capacity': row[3],
-                'street': row[4],
-                'city': row[5],
-                'province': row[6],
-                'postal_code': row[7],
-                'image_url': image_url,
-                'description': row[9],
-                'status': row[10],
-                'categories': row[11].split(',') if row[11] else []
-            }
-            venues.append(venue)
+                # Create venue dictionary with formatted data
+                venue = {
+                    'id': row[0],
+                    'name': row[1],
+                    'rate': float(row[2]) if row[2] else 0.0,
+                    'capacity': row[3],
+                    'street': row[4],
+                    'city': row[5],
+                    'province': row[6],
+                    'postal_code': row[7],
+                    'image_url': image_url,
+                    'description': row[9],
+                    'status': row[10],
+                    'categories': row[11].split(',') if row[11] else []
+                }
+                venues.append(venue)
+        except Exception as e:
+            venues = []
 
     # Get active conversations for the user
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT DISTINCT 
+            SELECT 
                 CASE 
                     WHEN m.sender_id = %s THEN m.receiver_id
                     ELSE m.sender_id
                 END as other_user_id,
-                u.first_name,
-                u.last_name,
-                u.email,
+                MAX(u.first_name) as first_name,
+                MAX(u.last_name) as last_name,
+                MAX(u.email) as email,
                 (
                     SELECT content 
                     FROM message 
@@ -251,13 +279,15 @@ def client_dashboard(request):
                 ) as last_message_date
             FROM message m
             JOIN users u ON (
-                (m.sender_id = %s AND m.receiver_id = u.user_id)
-                OR (m.sender_id = u.user_id AND m.receiver_id = %s)
+                CASE 
+                    WHEN m.sender_id = %s THEN m.receiver_id
+                    ELSE m.sender_id
+                END = u.user_id
             )
-            WHERE u.user_type = 'Vendor'
+            WHERE m.sender_id = %s OR m.receiver_id = %s
             GROUP BY other_user_id
             ORDER BY last_message_date DESC
-        """, [user_id, user_id, user_id, user_id, user_id, user_id, user_id])
+        """, [user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id])
         
         conversations = []
         for row in cursor.fetchall():
@@ -269,16 +299,23 @@ def client_dashboard(request):
                 'last_message_date': row[5]
             })
 
+    # Get all valid provinces from the schema
+    provinces = ["AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"]
+
     # Render dashboard with venues, conversations, and filter options
-    return render(request, 'client/dashboard.html', {
+    return render(request, 'client/c_dashboard.html', {
         'venues': venues,
         'conversations': conversations,
         'search_query': search_query,
-        'category': category,
+        'selected_categories': categories,  # Pass selected categories back to template
         'province': province,
-        'min_capacity': min_capacity,
-        'max_rate': max_rate,
-        'provinces': ["AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"],
+        'city': city,
+        'street': street,
+        'status': status,
+        'rate': rate,
+        'availability_type': availability_type,
+        'has_venues': len(venues) > 0,
+        'provinces': provinces,
         'categories': [
             'Wedding Hall', 'Conference Center', 'Banquet Hall', 'Music Venue', 'Outdoor Park',
             'Rooftop Terrace', 'Studio Space', 'Private Dining Room', 'Theater', 'Exhibition Center',
@@ -380,7 +417,7 @@ def venue_booking(request, venue_id):
 
     # Format venue data for display
     venue = {
-        'id': venue_id,
+        'venue_id': venue_id,
         'name': venue_data[0],
         'rate': float(venue_data[1]),
         'capacity': venue_data[2],
@@ -398,31 +435,57 @@ def venue_booking(request, venue_id):
     # Handle POST request for booking submission
     if request.method == 'POST':
         try:
-            # Extract and validate booking details from form
+            # Get and validate booking details from form
             start_date = request.POST.get('start_date')
             start_time = request.POST.get('start_time')
             end_date = request.POST.get('end_date')
             end_time = request.POST.get('end_time')
-            card_number = request.POST.get('card_number', '').strip()
-            card_name = request.POST.get('card_name', '').strip()
-            expiry_month = request.POST.get('expiry_month', '').strip()
-            expiry_year = request.POST.get('expiry_year', '').strip()
+            card_number = request.POST.get('card_number', '').replace(' ', '')  # Remove spaces
+            expiry_date = request.POST.get('expiry_date', '').strip()  # YYYY-MM format
+            method = request.POST.get('method', '').strip()
             cvv = request.POST.get('cvv', '').strip()
 
+            # Check database schema
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COLUMN_NAME 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'booking'
+                """)
+                columns = cursor.fetchall()
+
+            if not all([start_date, start_time, end_date, end_time, card_number, expiry_date, method, cvv]):
+                missing_fields = []
+                if not start_date: missing_fields.append('start date')
+                if not start_time: missing_fields.append('start time')
+                if not end_date: missing_fields.append('end date')
+                if not end_time: missing_fields.append('end time')
+                if not card_number: missing_fields.append('card number')
+                if not expiry_date: missing_fields.append('expiry date')
+                if not method: missing_fields.append('payment method')
+                if not cvv: missing_fields.append('cvv')
+                raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+
             # Parse datetime objects for booking period
-            start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
-            end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
+            try:
+                start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
+                end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
+            except ValueError as e:
+                raise ValueError(f"Invalid date/time format: {str(e)}")
 
             # Calculate booking duration and total amount
             duration_hours = (end_datetime - start_datetime).total_seconds() / 3600
             total_amount = venue['rate'] * duration_hours
 
-            # Validate card expiry date
-            current_date = datetime.now()
-            expiry_date = datetime.strptime(f"{expiry_year}-{expiry_month}-01", "%Y-%m-%d")
-            if expiry_date < current_date:
-                messages.error(request, "Card has expired.")
-                return render(request, 'client/venue_booking.html', {'venue': venue})
+            # Validate card expiry date (now in YYYY-MM format)
+            try:
+                expiry_year, expiry_month = expiry_date.split('-')
+                current_date = datetime.now()
+                expiry_date_obj = datetime.strptime(f"{expiry_year}-{expiry_month}-01", "%Y-%m-%d")
+                if expiry_date_obj < current_date:
+                    raise ValueError("Card has expired")
+            except ValueError as e:
+                raise ValueError(f"Invalid expiry date: {str(e)}")
 
             # Check for booking overlaps
             with connection.cursor() as cursor:
@@ -430,40 +493,87 @@ def venue_booking(request, venue_id):
                     SELECT COUNT(*) FROM booking
                     WHERE venue_id = %s
                     AND (
-                        (start_datetime <= %s AND end_datetime >= %s)
-                        OR (start_datetime <= %s AND end_datetime >= %s)
-                        OR (start_datetime >= %s AND end_datetime <= %s)
+                        (start_date <= %s AND end_date >= %s)
+                        OR (start_date <= %s AND end_date >= %s)
+                        OR (start_date >= %s AND end_date <= %s)
                     )
-                """, [venue_id, start_datetime, start_datetime, end_datetime, end_datetime, start_datetime, end_datetime])
+                """, [
+                    venue_id,
+                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    end_datetime.strftime('%Y-%m-%d %H:%M:%S')
+                ])
                 if cursor.fetchone()[0] > 0:
-                    messages.error(request, "This time slot is already booked.")
-                    return render(request, 'client/venue_booking.html', {'venue': venue})
+                    raise ValueError("This time slot is already booked")
 
             # Create payment record
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO payment (user_id, amount, method, card_last_four, status)
+                    INSERT INTO payment (method, amount, card_last_four, card_expiry, rate)
                     VALUES (%s, %s, %s, %s, %s)
-                """, [user_id, total_amount, 'Credit Card', card_number[-4:], 'Completed'])
+                """, [
+                    method,
+                    total_amount,
+                    card_number[-4:],
+                    expiry_date,  # Already in YYYY-MM format
+                    venue['rate']
+                ])
                 payment_id = cursor.lastrowid
 
             # Create booking record
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO booking (user_id, venue_id, payment_id, start_datetime, end_datetime, status)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, [user_id, venue_id, payment_id, start_datetime, end_datetime, 'Confirmed'])
+                    INSERT INTO booking (user_id, venue_id, payment_id, start_date, end_date)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, [
+                    user_id,
+                    venue_id,
+                    payment_id,
+                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    end_datetime.strftime('%Y-%m-%d %H:%M:%S')
+                ])
+                booking_id = cursor.lastrowid
 
             # Send email notifications
-            send_booking_confirmation_email(request, venue, start_datetime, end_datetime, total_amount)
-            send_venue_owner_notification_email(venue, start_datetime, end_datetime, total_amount)
+            try:
+                with connection.cursor() as cursor:
+                    send_and_log_notification(
+                        cursor,
+                        "Booking Confirmation",
+                        request.session.get('email'),
+                        request.session.get('name'),
+                        venue['name'],
+                        booking_id,
+                        venue_id,
+                        user_id,
+                        payment_id,
+                        start_datetime,
+                        end_datetime
+                    )
+            except Exception:
+                # Continue even if notification fails - booking is still valid
+                pass
 
             messages.success(request, "Booking confirmed successfully!")
             return redirect('users:client_dashboard')
 
+        except ValueError as e:
+            messages.error(request, str(e))
+            return render(request, 'client/venue_booking.html', {
+                'venue': venue,
+                'venue_id': venue_id,
+                'form_data': request.POST  # Pass form data back to repopulate the form
+            })
         except Exception as e:
-            messages.error(request, "Failed to process booking. Please try again.")
-            return render(request, 'client/venue_booking.html', {'venue': venue})
+            messages.error(request, f"Failed to process booking: {str(e)}")
+            return render(request, 'client/venue_booking.html', {
+                'venue': venue,
+                'venue_id': venue_id,
+                'form_data': request.POST  # Pass form data back to repopulate the form
+            })
 
     # Handle GET request - calculate total amount based on time parameters
     start_date = request.GET.get('start_date')
@@ -481,7 +591,10 @@ def venue_booking(request, venue_id):
         except ValueError:
             messages.error(request, "Invalid date/time format.")
 
-    return render(request, 'client/venue_booking.html', {'venue': venue})
+    return render(request, 'client/venue_booking.html', {
+        'venue': venue,
+        'venue_id': venue_id
+    })
 
 def view_bookings(request):
     # Verify user authentication

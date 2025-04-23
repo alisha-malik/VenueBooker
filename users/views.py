@@ -37,7 +37,7 @@ def register(request):
 
         with connection.cursor() as cursor:
             try:
-                # Check if the email and user_type combination already exists
+                # Check if this exact email and user_type combination already exists
                 cursor.execute("SELECT 1 FROM users WHERE email = %s AND user_type = %s", [email, user_type])
                 if cursor.fetchone():
                     messages.error(request, f"This email is already registered as a {user_type}. If you forgot your password, you can reset it.")
@@ -91,7 +91,7 @@ def user_login(request):
 
         with connection.cursor() as cursor:
             try:
-                # Select by email only not user_type (user_type is validated afterward)
+                # Fetch by email only, not user_type — we want to validate the type afterward
                 cursor.execute("""
                     SELECT user_id, first_name, last_name, phone, email, user_type, password
                     FROM users WHERE email = %s
@@ -106,7 +106,6 @@ def user_login(request):
                         request.session['user_id'] = user_id
                         request.session['user_type'] = actual_type
 
-                        # Redirect to the appropriate dashboard based on user type
                         if actual_type == "Client":
                             return redirect('users:client_dashboard')
                         else:
@@ -128,10 +127,9 @@ def user_login(request):
 
             except Exception as e:
                 messages.error(request, "Login error occurred.")
-                print(f"Login error: {str(e)}")
+                print(f"[DEBUG] Login error: {str(e)}")
 
     return render(request, 'users/login.html')
-
 
 def password_reset(request):
     if request.method == 'POST':
@@ -153,40 +151,60 @@ def password_reset(request):
                     return redirect('users:password_reset')
 
                 user_id, first_name, last_name, email, user_type = user_data
+                token = secrets.token_urlsafe(32)
                 
-                # If we a new password is provided update it
-                if new_password1 and new_password2:
-                    if new_password1 != new_password2:
-                        messages.error(request, "Passwords don't match.")
-                        return render(request, 'users/password_reset.html', {
-                            'email': email,
-                            'show_password_form': True
-                        })
-                    
-                    # Update the password in the database
-                    hashed_password = make_password(new_password1)
-                    cursor.execute("""
-                        UPDATE users 
-                        SET password = %s 
-                        WHERE user_id = %s
-                    """, [hashed_password, user_id])
-                    
-                    messages.success(request, "Your password has been reset successfully.")
-                    return redirect('users:login')
+                # Update the user's reset token in the database
+                cursor.execute("""
+                    UPDATE users 
+                    SET password_reset_token = %s 
+                    WHERE user_id = %s
+                """, [token, user_id])
                 
-                # If the email is provided but no new password is provided - display the password form
-                return render(request, 'users/password_reset.html', {
-                    'email': email,
-                    'show_password_form': True
-                })
+                # Compose and print the email
+                subject = "Password Reset Request"
+                message = f"""
+                Hi {first_name} {last_name},
+
+                You requested a password reset for your VenueBooker account.
+                Please click the link below to reset your password:
+
+                {request.build_absolute_uri(reverse('users:password_reset', kwargs={'token': token}))}
+
+                If you didn't request this, please ignore this email.
+
+                Best regards,
+                VenueBooker Team
+                """
+                
+                # Print the email to terminal
+                print("\n" + "="*50)
+                print("Password Reset Email")
+                print("="*50)
+                print(f"To: {email}")
+                print(f"Subject: {subject}")
+                print("-"*50)
+                print(message)
+                print("="*50 + "\n")
+                
+                # Send the actual email
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=False,
+                )
+                
+                messages.success(request, "Password reset link has been sent to your email.")
+                return redirect('users:password_reset_done')
 
         except Exception as e:
-            print(f"Password reset error: {str(e)}")
+            print(f"[DEBUG] Password reset error: {str(e)}")
             messages.error(request, "An error occurred while processing your request.")
             return redirect('users:password_reset')
     
-    # GET request - show initial email form
-    return render(request, 'users/password_reset.html', {'show_password_form': False})
+    # GET request - show appropriate form
+    return render(request, 'users/password_reset.html', {'token': token})
 
 def profile(request):
     user_id = request.session.get('user_id')
@@ -194,7 +212,6 @@ def profile(request):
     if not user_id:
         return redirect('users:login')
 
-    # Get user profile data from the database
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT first_name, last_name, phone, email, user_type
@@ -216,16 +233,10 @@ def profile(request):
         }
     })
 
-
 def user_logout(request):
-    # Clear all messages
-    storage = messages.get_messages(request)
-    storage.used = True
-    
-    # Clear session
     logout(request)
     request.session.flush()
-    
+    messages.success(request, "You have been logged out")
     return redirect('users:login')
 
 def venue_booking(request, venue_id):
@@ -344,3 +355,31 @@ def venue_booking(request, venue_id):
         'venue': get_object_or_404(Venue, venue_id=venue_id),
         'today': datetime.now().date()
     })
+
+def admin_login(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Check if user exists and is an admin
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, email, password, is_admin 
+                FROM users_user 
+                WHERE email = %s
+            """, [email])
+            user = cursor.fetchone()
+            
+            if user and check_password(password, user[2]) and user[3]:  # user[3] is is_admin
+                # Set session variables
+                request.session['user_id'] = user[0]
+                request.session['email'] = user[1]
+                request.session['is_admin'] = True
+                
+                messages.success(request, 'Successfully logged in as admin.')
+                return redirect('admin_dashboard')
+            else:
+                messages.error(request, 'Invalid admin credentials.')
+                return redirect('admin_login')
+    
+    return render(request, 'users/admin_login.html')
