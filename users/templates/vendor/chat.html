@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <title>Chat with {{ client_name }} | VenueBooker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            z-index: 100;
+        }
+
+        .back-link:hover {
+            transform: translateX(-3px);
+        }
+
+        .chat-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e8f4f8;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #2c3e50;
+        }
+
+        .chat-header p {
+            margin: 0.5rem 0 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .messages-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            max-width: 70%;
+        }
+
+        .message.sent {
+            margin-left: auto;
+        }
+
+        .message-content {
+            padding: 0.8rem 1rem;
+            border-radius: 15px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.sent .message-content {
+            background: #3498db;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.received .message-content {
+            background: #e8f4f8;
+            color: #2c3e50;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-meta {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            margin-top: 0.3rem;
+        }
+
+        .message.sent .message-meta {
+            text-align: right;
+        }
+
+        .message-form {
+            display: flex;
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e8f4f8;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid #e8f4f8;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            resize: none;
+            min-height: 42px;
+            max-height: 120px;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .send-button {
+            padding: 0.8rem 1.5rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            background: #2980b9;
+        }
+
+        .send-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+    </style>
+</head>
+<body>
+    <a href="{% url 'users:vendor_messages' %}" class="back-link">← Back to Messages</a>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Conversation with {{ client_name }}</h1>
+            <p>{{ client_email }}</p>
+        </div>
+
+        <div class="messages-container" id="messages">
+            {% for message in messages %}
+                <div class="message {{ message.type }}">
+                    <div class="message-content">
+                        {{ message.content }}
+                    </div>
+                    <div class="message-meta">
+                        {% if message.type == 'sent' %}
+                            You
+                        {% else %}
+                            {{ client_name }}
+                        {% endif %}
+                        • {{ message.date_sent|date:"M d, Y H:i" }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form class="message-form" id="messageForm">
+            {% csrf_token %}
+            <input type="hidden" name="receiver_id" value="{{ client_id }}">
+            <textarea 
+                name="content" 
+                class="message-input" 
+                placeholder="Type your message..." 
+                required
+            ></textarea>
+            <button type="submit" class="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesContainer = document.getElementById('messages');
+            const messageForm = document.getElementById('messageForm');
+            const messageInput = document.querySelector('.message-input');
+            const errorMessage = document.getElementById('errorMessage');
+            const sendButton = document.querySelector('.send-button');
+
+            // Scroll to bottom of messages
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            scrollToBottom();
+
+            // Auto-expand textarea
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+
+            // Handle form submission
+            messageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                sendButton.disabled = true;
+
+                fetch('{% url "users:vendor_send_message" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Add new message to the chat
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'message sent';
+                        messageDiv.innerHTML = `
+                            <div class="message-content">
+                                ${data.message.content}
+                            </div>
+                            <div class="message-meta">
+                                You • ${new Date().toLocaleString()}
+                            </div>
+                        `;
+                        messagesContainer.appendChild(messageDiv);
+                        
+                        // Clear input and scroll to bottom
+                        messageInput.value = '';
+                        messageInput.style.height = '42px';
+                        scrollToBottom();
+                        
+                        // Hide any previous error
+                        errorMessage.style.display = 'none';
+                    } else {
+                        throw new Error(data.error || 'Failed to send message');
+                    }
+                })
+                .catch(error => {
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                })
+                .finally(() => {
+                    sendButton.disabled = false;
+                });
+            });
+
+            // Handle Enter key to send message (Shift+Enter for new line)
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (this.value.trim()) {
+                        messageForm.dispatchEvent(new Event('submit'));
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

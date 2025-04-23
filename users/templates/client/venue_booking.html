@@ -601,7 +601,7 @@
             const endDate = document.getElementById('end_date').value;
             const startTime = document.getElementById('start_time').value;
             const endTime = document.getElementById('end_time').value;
-            const hourlyRate = parseFloat("{{ venue.price }}");
+            const hourlyRate = parseFloat("{{ venue.rate }}");
 
             if (!startDate || !endDate || !startTime || !endTime) {
                 document.getElementById('total-amount-container').style.display = 'none';
@@ -616,7 +616,7 @@
             const start = new Date(`${startDate}T${startTime}`);
             const end = new Date(`${endDate}T${endTime}`);
             
-            const diffHours = Math.ceil((end - start) / (1000 * 60 * 60));
+            const diffHours = (end - start) / (1000 * 60 * 60);
             
             if (diffHours > 0) {
                 const totalAmount = (diffHours * hourlyRate).toFixed(2);
@@ -627,12 +627,15 @@
                 
                 if (totalAmountElement && hoursBookedElement && containerElement) {
                     totalAmountElement.textContent = `$${totalAmount}`;
-                    hoursBookedElement.textContent = `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+                    hoursBookedElement.textContent = `${diffHours.toFixed(1)} hour${diffHours !== 1 ? 's' : ''}`;
                     containerElement.style.display = 'block';
                 }
             } else {
                 document.getElementById('total-amount-container').style.display = 'none';
             }
+
+            // Update rate info with precise hours
+            document.getElementById('rate-info').textContent = `Based on $${hourlyRate}/hour for ${diffHours.toFixed(1)} hour${diffHours !== 1 ? 's' : ''}`;
         }
 
         function initializeTimeOptions() {
@@ -788,7 +791,7 @@
             <div class="venue-info">
                 <div class="info-row">
                     <div class="info-label">Rate</div>
-                    <div class="info-value">${{ venue.price }}/hour</div>
+                    <div class="info-value">${{ venue.rate }}/hour</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Capacity</div>
@@ -866,7 +869,7 @@
                         <div class="total-amount-label">Total Amount</div>
                         <div id="total-amount-value" class="total-amount-value">$0.00</div>
                         <div class="rate-info">
-                            Based on ${{ venue.price }}/hour for <span id="hours-booked">0 hours</span>
+                            Based on ${{ venue.rate }}/hour for <span id="hours-booked">0 hours</span>
                         </div>
                     </div>
                     

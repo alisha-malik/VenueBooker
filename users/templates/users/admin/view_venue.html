@@ -1,0 +1,287 @@
+{% load static %}
+
+{% block content %}
+<style>
+    body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f8f9fa;
+        color: #2d3436;
+        line-height: 1.6;
+    }
+
+    .venue-container {
+        max-width: 1200px;
+        margin: 3rem auto;
+        padding: 0 2rem;
+    }
+
+    .venue-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .venue-title {
+        font-size: 2.5rem;
+        color: #2d3436;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+
+    .status-Active {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    .status-Inactive {
+        background-color: #95a5a6;
+        color: white;
+    }
+
+    .status-Maintenance, .status-Under-Maintenance {
+        background-color: #f1c40f;
+        color: #2c3e50;
+    }
+
+    .venue-grid {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 3rem;
+        margin-top: 2rem;
+    }
+
+    .venue-image {
+        width: 100%;
+        height: 500px;
+        object-fit: cover;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.75rem;
+        color: #2d3436;
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #3498db;
+    }
+
+    .description-text {
+        font-size: 1.1rem;
+        color: #2d3436;
+        line-height: 1.8;
+        margin-bottom: 2rem;
+    }
+
+    .info-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-label {
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+
+    .info-value {
+        color: #2d3436;
+        font-weight: 500;
+    }
+
+    .categories-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .category-tag {
+        background-color: #e8f4f8;
+        color: #2980b9;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #2d3436;
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 2rem;
+    }
+
+    .back-link:hover {
+        color: #3498db;
+    }
+
+    .venue-title-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .delete-button {
+        background-color: #e74c3c;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.2s;
+    }
+
+    .delete-button:hover {
+        background-color: #c0392b;
+        color: white;
+        text-decoration: none;
+    }
+
+    @media (max-width: 992px) {
+        .venue-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .venue-container {
+            padding: 0 1rem;
+        }
+
+        .venue-image {
+            height: 400px;
+        }
+    }
+</style>
+
+<div class="venue-container">
+    <a href="{% url 'users:admin_dashboard' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+
+    <div class="venue-header">
+        <div class="venue-title-section">
+            <h1 class="venue-title">{{ venue.name }}</h1>
+            <div class="status-badge status-{{ venue.status|cut:' ' }}">{{ venue.status }}</div>
+        </div>
+    </div>
+
+    <div class="venue-grid">
+        <div class="venue-main">
+            {% if venue.image_url %}
+                <img src="{{ venue.image_url }}" alt="{{ venue.name }}" class="venue-image">
+            {% else %}
+                <img src="{% static 'default-placeholder.png' %}" alt="No image available" class="venue-image">
+            {% endif %}
+
+            <h2 class="section-title">Description</h2>
+            <p class="description-text">{{ venue.description }}</p>
+        </div>
+
+        <div class="venue-sidebar">
+            <div class="info-section">
+                <h2 class="section-title">Venue Details</h2>
+                <div class="info-grid">
+                    <span class="info-label">Rate:</span>
+                    <span class="info-value">${% if venue.price %}{{ venue.price }}{% else %}{{ venue.rate }}{% endif %}/hour</span>
+                    
+                    <span class="info-label">Capacity:</span>
+                    <span class="info-value">{{ venue.capacity }} people</span>
+                    
+                    {% if venue.availability %}
+                    <span class="info-label">Availability:</span>
+                    <span class="info-value">{{ venue.availability }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2 class="section-title">Location</h2>
+                <div class="info-grid">
+                    {% if venue.street %}
+                    <span class="info-label">Street:</span>
+                    <span class="info-value">{{ venue.street }}</span>
+                    
+                    <span class="info-label">City:</span>
+                    <span class="info-value">{{ venue.city }}</span>
+                    
+                    <span class="info-label">Province:</span>
+                    <span class="info-value">{{ venue.province }}</span>
+                    
+                    <span class="info-label">Postal Code:</span>
+                    <span class="info-value">{{ venue.postal_code }}</span>
+                    {% else %}
+                    <span class="info-label">Address:</span>
+                    <span class="info-value">{{ venue.address }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2 class="section-title">Categories</h2>
+                <div class="categories-list">
+                    {% if venue.categories %}
+                        {% for category in venue.categories %}
+                            <span class="category-tag">{{ category }}</span>
+                        {% endfor %}
+                    {% else %}
+                        {% for category in categories %}
+                            <span class="category-tag">{{ category }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2 class="section-title">{% if venue.vendor_name %}Contact{% else %}Owner{% endif %} Information</h2>
+                <div class="info-grid">
+                    {% if venue.vendor_name %}
+                    <span class="info-label">Vendor:</span>
+                    <span class="info-value">{{ venue.vendor_name }}</span>
+                    
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ venue.vendor_email }}</span>
+                    
+                    <span class="info-label">Phone:</span>
+                    <span class="info-value">{{ venue.vendor_phone }}</span>
+                    {% else %}
+                    <span class="info-label">Name:</span>
+                    <span class="info-value">{{ venue.owner.first_name }} {{ venue.owner.last_name }}</span>
+                    
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ venue.owner.email }}</span>
+                    
+                    {% if venue.owner.phone %}
+                    <span class="info-label">Phone:</span>
+                    <span class="info-value">{{ venue.owner.phone }}</span>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
