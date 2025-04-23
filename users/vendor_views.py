@@ -40,7 +40,7 @@ def vendor_dashboard(request):
             # Includes venue details and categories through LEFT JOIN
             cursor.execute("""
                 SELECT v.venue_id, v.name, v.rate, v.status, v.image_url, v.description, 
-                       v.capacity, GROUP_CONCAT(vc.category), vc.availability_type
+                       v.capacity, GROUP_CONCAT(vc.category), vc.availability_type, v.city
                 FROM venue v
                 LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
                 WHERE v.user_id = %s
@@ -72,7 +72,8 @@ def vendor_dashboard(request):
                     'description': row[5],
                     'capacity': row[6],
                     'categories': row[7].split(',') if row[7] else [],
-                    'availability': row[8] or 'Full-Year'
+                    'availability': row[8] or 'Full-Year',
+                    'location': row[9]  # Add city as location
                 }
                 venues.append(venue)
 
@@ -602,6 +603,11 @@ def vendor_messages(request):
                     'last_message': row[4],
                     'last_message_date': row[5]
                 })
+
+            # Clear any existing messages
+            storage = messages.get_messages(request)
+            for _ in storage:
+                pass
 
             # Prepare context for the messages template
             return render(request, 'vendor/messages.html', {

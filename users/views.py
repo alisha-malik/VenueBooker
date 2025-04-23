@@ -23,6 +23,10 @@ def register(request):
         confirm_password = request.POST.get('confirm_password', '')
         user_type = request.POST.get('user_type', '').strip()
 
+        # Map "Venue Owner" to "Vendor" for database compatibility
+        if user_type == "Venue Owner":
+            user_type = "Vendor"
+
         # Validate passwords match
         if password != confirm_password:
             messages.error(request, "Passwords do not match.")
@@ -89,6 +93,10 @@ def user_login(request):
         email = request.POST.get('email', '').lower().strip()
         password = request.POST.get('password', '')
         selected_type = request.POST.get('user_type', '').strip()
+        
+        # Map "Venue Owner" to "Vendor" for database compatibility
+        if selected_type == "Venue Owner":
+            selected_type = "Vendor"
 
         with connection.cursor() as cursor:
             try:
@@ -102,16 +110,23 @@ def user_login(request):
                 if row:
                     user_id, first_name, last_name, phone, email, actual_type, hashed_password = row
 
-                    if check_password(password, hashed_password):
+                    # Check if the user is trying to log in with the correct user type
+                    if actual_type != selected_type:
+                        messages.error(request, f"This email is registered as a {actual_type}. Please select the correct account type.")
+                        return render(request, 'users/login.html', {
+                            'email': email,
+                            'user_type': actual_type
+                        })
 
+                    if check_password(password, hashed_password):
                         request.session['user_id'] = user_id
                         request.session['user_type'] = actual_type
 
+                        # Route to the appropriate dashboard based on user type
                         if actual_type == "Client":
                             return redirect('users:client_dashboard')
-                        else:
+                        else:  # Vendor/Venue Owner
                             return redirect('users:vendor_dashboard')
-
                     else:
                         messages.error(request, "Incorrect password. If you forgot your password, you can reset it.")
                         return render(request, 'users/login.html', {
@@ -153,13 +168,15 @@ def password_reset(request):
                         messages.error(request, "No account found with this email address.")
                         return redirect('users:password_reset')
 
-                    # Store email in session for verification
+                    # Store email and user_type in session for verification
                     request.session['reset_email'] = email
+                    request.session['user_type'] = user_data[4]  # Store user_type from query result
                     messages.success(request, "Email verified. Please enter your new password.")
                     return render(request, 'users/password_reset.html', {'show_password_form': True})
                 
                 # This is the password update request
                 stored_email = request.session.get('reset_email')
+                stored_user_type = request.session.get('user_type')
                 
                 if not stored_email or email != stored_email:
                     messages.error(request, "Please verify your email first.")
@@ -173,15 +190,16 @@ def password_reset(request):
                 # Hash the new password
                 hashed_password = make_password(new_password1)
                 
-                # Update the user's password
+                # Update the user's password while preserving the user_type
                 cursor.execute("""
                     UPDATE users 
                     SET password = %s 
-                    WHERE email = %s
-                """, [hashed_password, email])
+                    WHERE email = %s AND user_type = %s
+                """, [hashed_password, email, stored_user_type])
                 
                 # Clear the session data
                 del request.session['reset_email']
+                del request.session['user_type']
                 
                 messages.success(request, "Your password has been successfully reset. Please log in with your new password.")
                 return redirect('users:login')
