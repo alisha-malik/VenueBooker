@@ -1,3 +1,17 @@
+"""
+Client Views Module
+
+Contains all the view functions for clients in the VenueBooker system.
+It handles client authentication, venue browsing, booking management, and communication with vendors.
+
+Key Functionalities:
+1. Authentication & Session Management
+2. Venue Management
+3. Booking Operations
+4. Communication
+5. Notifications
+"""
+
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.contrib import messages
@@ -6,9 +20,10 @@ from datetime import datetime, timedelta
 import sys
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import JsonResponse
 
 def send_and_log_notification(cursor, email_type, to_email, user_name, venue_name, booking_id, venue_id, user_id, payment_id=None, start_dt=None, end_dt=None):
-    # Compose email based on type
+    # Create email based on type
     if email_type == "Booking Confirmation":
         subject = "Venue Booking Confirmation"
         message = (
@@ -46,7 +61,7 @@ def send_and_log_notification(cursor, email_type, to_email, user_name, venue_nam
         fail_silently=False
     )
 
-    # Log the notification in the database
+    # Store the notification in the database
     cursor.execute("""
         INSERT INTO notification (booking_id, venue_id, user_id, payment_id, notification_type)
         VALUES (%s, %s, %s, %s, %s)
@@ -84,123 +99,193 @@ def send_upcoming_booking_reminders():
                 start_dt=start_dt,
                 end_dt=end_dt
             )
-
-    print("[Reminder Job] Sent reminders for bookings 2 days away.")
         
-def client_dashboard(request):
-    user_id = request.session.get('user_id')
-    print(f"[DEBUG] Starting client_dashboard for user_id: {user_id}", flush=True)
-
-    if not user_id:
-        messages.error(request, "You must be logged in to view this page.")
-        return redirect('users:login')
-
-    try:
-        # Get filter parameters from the request
-        filters = {
-            'venue_name': request.GET.get('venue_name', ''),
-            'province': request.GET.get('province', ''),
-            'city': request.GET.get('city', ''),
-            'rate': request.GET.get('rate', ''),
-            'status': request.GET.get('status', ''),
-            'availability_type': request.GET.get('availability_type', ''),
-            'selected_categories': request.GET.getlist('categories', []),
-        }
-
-        base_query = """
-            SELECT v.venue_id, v.name, v.rate, v.status, v.image_url, v.description,
-                v.capacity, v.street, v.city, v.province, 
-                GROUP_CONCAT(DISTINCT vc.category) as categories, vc.availability_type
-            FROM venue v
-            LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
-            WHERE 1=1
-        """
-        params = []
-
-        # Only add filters if they are actually set
-        if filters['venue_name']:
-            base_query += " AND v.name LIKE %s"
-            params.append(f"%{filters['venue_name']}%")
-        if filters['province']:
-            base_query += " AND v.province = %s"
-            params.append(filters['province'])
-        if filters['city']:
-            base_query += " AND v.city LIKE %s"
-            params.append(f"%{filters['city']}%")
-        if filters['rate']:
-            base_query += " AND v.rate <= %s"
-            params.append(filters['rate'])
-        if filters['status']:
-            base_query += " AND v.status = %s"
-            params.append(filters['status'])
-        if filters['availability_type']:
-            base_query += " AND vc.availability_type = %s"
-            params.append(filters['availability_type'])
-        if filters['selected_categories']:
-            placeholders = ', '.join(['%s'] * len(filters['selected_categories']))
-            base_query += f" AND vc.category IN ({placeholders})"
-            params.extend(filters['selected_categories'])
-
-        base_query += " GROUP BY v.venue_id, vc.availability_type ORDER BY v.name"
-
-        venues = []
-        with connection.cursor() as cursor:
-            cursor.execute(base_query, params)
-            venue_rows = cursor.fetchall()
-            print(f"[DEBUG] Number of venues fetched: {len(venue_rows)}", flush=True)
-
-            for row in venue_rows:
-                image_url = row[4]
-                if image_url:
-                    # Ensure the URL starts with /media/
-                    if not image_url.startswith('/media/'):
-                        image_url = f'/media/{image_url}'
-                    
-                    # Convert to absolute URL for templates
-                    image_url = request.build_absolute_uri(image_url)
-
-                venue = {
-                    'id': row[0],
-                    'name': row[1],
-                    'price': float(row[2]) if row[2] else 0.0,
-                    'status': row[3],
-                    'image_url': image_url,
-                    'description': row[5],
-                    'capacity': row[6],
-                    'street': row[7],
-                    'city': row[8],
-                    'province': row[9],
-                    'categories': row[10].split(',') if row[10] else [],
-                    'availability': row[11] or 'Full-Year'
-                }
-                venues.append(venue)
-
-        has_venues = len(venues) > 0
-
-        # Get all categories for filter options
-        categories = []
-        seasons = ['Spring', 'Summer', 'Fall', 'Winter']
-        provinces = ['AB','BC','MB','NB','NL','NS','NT','NU','ON','PE','QC','SK','YT']
-        
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT DISTINCT category FROM venue_category WHERE category NOT IN ('Spring', 'Summer', 'Fall', 'Winter')")
-            for row in cursor.fetchall():
-                categories.append(row[0])
-
-        return render(request, 'client/c_dashboard.html', {
-            'venues': venues,
-            'has_venues': has_venues,
-            'categories': categories,
-            'seasons': seasons,
-            'provinces': provinces,
-            'field_values': filters,  # Pass the filter values back to the template
-            'field_errors': {}  # Empty dictionary for any validation errors
+def get_active_conversations(cursor, user_id):
+    # Get active conversations for the client
+    cursor.execute("""
+        SELECT DISTINCT 
+            u.user_id as vendor_id,
+            u.first_name,
+            u.last_name,
+            u.email,
+            (
+                SELECT content 
+                FROM message 
+                WHERE (sender_id = %s AND receiver_id = u.user_id)
+                   OR (sender_id = u.user_id AND receiver_id = %s)
+                ORDER BY date_sent DESC
+                LIMIT 1
+            ) as last_message,
+            (
+                SELECT date_sent 
+                FROM message 
+                WHERE (sender_id = %s AND receiver_id = u.user_id)
+                   OR (sender_id = u.user_id AND receiver_id = %s)
+                ORDER BY date_sent DESC
+                LIMIT 1
+            ) as last_message_date
+        FROM message m
+        JOIN users u ON (
+            (m.sender_id = %s AND m.receiver_id = u.user_id)
+            OR (m.sender_id = u.user_id AND m.receiver_id = %s)
+        )
+        WHERE u.user_type = 'Vendor'
+        GROUP BY u.user_id
+        ORDER BY last_message_date DESC
+        LIMIT 5
+    """, [user_id, user_id, user_id, user_id, user_id, user_id])
+    
+    conversations = []
+    for row in cursor.fetchall():
+        conversations.append({
+            'vendor_id': row[0],
+            'vendor_name': f"{row[1]} {row[2]}",
+            'vendor_email': row[3],
+            'last_message': row[4],
+            'last_message_date': row[5]
         })
+    return conversations
 
-    except Exception as e:
-        print(f"[DEBUG] client_dashboard error → {e}", flush=True)
-        messages.error(request, "Could not load dashboard.")
+def client_dashboard(request):
+    # Verify user authentication by checking session
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, "Please log in to access the dashboard.")
         return redirect('users:login')
+
+    # Initialize filter parameters from GET request for venue search
+    search_query = request.GET.get('search', '').strip()
+    category = request.GET.get('category', '').strip()
+    province = request.GET.get('province', '').strip()
+    min_capacity = request.GET.get('min_capacity', '').strip()
+    max_rate = request.GET.get('max_rate', '').strip()
+
+    # Build base SQL query to fetch venue information with LEFT JOIN for categories
+    base_query = """
+        SELECT v.venue_id, v.name, v.rate, v.capacity, v.street, v.city, v.province, 
+               v.postal_code, v.image_url, v.description, v.status,
+               GROUP_CONCAT(vc.category) as categories
+        FROM venue v
+        LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
+        WHERE v.status = 'Active'
+    """
+    query_params = []
+
+    # Add WHERE clauses based on provided filters
+    if search_query:
+        base_query += " AND (v.name LIKE %s OR v.description LIKE %s)"
+        query_params.extend([f'%{search_query}%', f'%{search_query}%'])
+    
+    if category:
+        base_query += " AND vc.category = %s"
+        query_params.append(category)
+    
+    if province:
+        base_query += " AND v.province = %s"
+        query_params.append(province)
+    
+    if min_capacity:
+        base_query += " AND v.capacity >= %s"
+        query_params.append(int(min_capacity))
+    
+    if max_rate:
+        base_query += " AND v.rate <= %s"
+        query_params.append(float(max_rate))
+
+    # Group results by venue to handle multiple categories
+    base_query += " GROUP BY v.venue_id"
+
+    # Execute the main venue query and process results
+    with connection.cursor() as cursor:
+        cursor.execute(base_query, query_params)
+        venues = []
+        for row in cursor.fetchall():
+            # Format image URL to ensure proper serving
+            image_url = row[8]
+            if image_url and not image_url.startswith('/media/'):
+                image_url = f'/media/{image_url}'
+
+            # Create venue dictionary with formatted data
+            venue = {
+                'id': row[0],
+                'name': row[1],
+                'rate': float(row[2]),
+                'capacity': row[3],
+                'street': row[4],
+                'city': row[5],
+                'province': row[6],
+                'postal_code': row[7],
+                'image_url': image_url,
+                'description': row[9],
+                'status': row[10],
+                'categories': row[11].split(',') if row[11] else []
+            }
+            venues.append(venue)
+
+    # Get active conversations for the user
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT 
+                CASE 
+                    WHEN m.sender_id = %s THEN m.receiver_id
+                    ELSE m.sender_id
+                END as other_user_id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                (
+                    SELECT content 
+                    FROM message 
+                    WHERE (sender_id = %s AND receiver_id = other_user_id)
+                       OR (sender_id = other_user_id AND receiver_id = %s)
+                    ORDER BY date_sent DESC
+                    LIMIT 1
+                ) as last_message,
+                (
+                    SELECT date_sent 
+                    FROM message 
+                    WHERE (sender_id = %s AND receiver_id = other_user_id)
+                       OR (sender_id = other_user_id AND receiver_id = %s)
+                    ORDER BY date_sent DESC
+                    LIMIT 1
+                ) as last_message_date
+            FROM message m
+            JOIN users u ON (
+                (m.sender_id = %s AND m.receiver_id = u.user_id)
+                OR (m.sender_id = u.user_id AND m.receiver_id = %s)
+            )
+            WHERE u.user_type = 'Vendor'
+            GROUP BY other_user_id
+            ORDER BY last_message_date DESC
+        """, [user_id, user_id, user_id, user_id, user_id, user_id, user_id])
+        
+        conversations = []
+        for row in cursor.fetchall():
+            conversations.append({
+                'user_id': row[0],
+                'name': f"{row[1]} {row[2]}",
+                'email': row[3],
+                'last_message': row[4],
+                'last_message_date': row[5]
+            })
+
+    # Render dashboard with venues, conversations, and filter options
+    return render(request, 'client/dashboard.html', {
+        'venues': venues,
+        'conversations': conversations,
+        'search_query': search_query,
+        'category': category,
+        'province': province,
+        'min_capacity': min_capacity,
+        'max_rate': max_rate,
+        'provinces': ["AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"],
+        'categories': [
+            'Wedding Hall', 'Conference Center', 'Banquet Hall', 'Music Venue', 'Outdoor Park',
+            'Rooftop Terrace', 'Studio Space', 'Private Dining Room', 'Theater', 'Exhibition Center',
+            'Garden Venue', 'Community Hall', 'Co-working Space',
+            'Winter Venue', 'Spring Venue', 'Summer Venue', 'Fall Venue'
+        ]
+    })
 
 def venue_detail(request, venue_id):
     user_id = request.session.get('user_id')
@@ -211,13 +296,14 @@ def venue_detail(request, venue_id):
         
     try:
         with connection.cursor() as cursor:
-            # Updated the table name from 'user' to 'users'
+            # Select venue details including owner information
             cursor.execute("""
                 SELECT v.venue_id, v.name, v.rate, v.status, v.image_url, v.description,
                     v.capacity, v.street, v.city, v.province, v.postal_code,
                     GROUP_CONCAT(DISTINCT vc.category) as categories,
                     vc.availability_type,
-                    u.first_name, u.last_name, u.email, u.phone
+                    u.first_name, u.last_name, u.email, u.phone,
+                    v.user_id
                 FROM venue v
                 LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
                 LEFT JOIN users u ON v.user_id = u.user_id
@@ -236,6 +322,7 @@ def venue_detail(request, venue_id):
                 image_url = f'/media/{image_url}'
                 image_url = request.build_absolute_uri(image_url)
                 
+            # Create venue dictionary with formatted data
             venue = {
                 'id': row[0],
                 'name': row[1],
@@ -252,7 +339,8 @@ def venue_detail(request, venue_id):
                 'availability': row[12] or 'Full-Year',
                 'vendor_name': f"{row[13]} {row[14]}",
                 'vendor_email': row[15],
-                'vendor_phone': row[16]
+                'vendor_phone': row[16],
+                'user_id': row[17]
             }
             
             return render(request, 'client/venue_detail.html', {
@@ -260,204 +348,154 @@ def venue_detail(request, venue_id):
             })
             
     except Exception as e:
-        print(f"[DEBUG] venue_detail error → {e}", flush=True)
         messages.error(request, "Could not load venue details.")
         return redirect('users:client_dashboard')
 
 def venue_booking(request, venue_id):
+    # Verify user authentication and retrieve user ID from session
     user_id = request.session.get('user_id')
-    print(f"[DEBUG] Starting venue_booking for venue_id: {venue_id}, user_id: {user_id}", flush=True)
-
     if not user_id:
-        messages.error(request, "You must be logged in to book a venue.")
+        messages.error(request, "Please log in to make a booking.")
         return redirect('users:login')
 
-    if request.session.get('user_type') != 'Client':
-        messages.error(request, "Only clients can book venues.")
+    # Fetch venue details including owner information and categories
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT v.name, v.rate, v.capacity, v.street, v.city, v.province, 
+                   v.postal_code, v.image_url, v.description, v.status,
+                   u.first_name, u.last_name, u.email,
+                   GROUP_CONCAT(vc.category) as categories
+            FROM venue v
+            JOIN users u ON v.user_id = u.user_id
+            LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
+            WHERE v.venue_id = %s
+            GROUP BY v.venue_id
+        """, [venue_id])
+        venue_data = cursor.fetchone()
+
+    # Verify venue exists and is active
+    if not venue_data or venue_data[9] != 'Active':
+        messages.error(request, "Venue not available for booking.")
         return redirect('users:client_dashboard')
 
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT v.venue_id, v.name, v.rate, v.status, v.image_url, v.description,
-                    v.capacity, v.street, v.city, v.province, v.postal_code,
-                    GROUP_CONCAT(DISTINCT vc.category) as categories,
-                    vc.availability_type,
-                    u.first_name, u.last_name, u.email, u.phone,
-                    v.user_id
-                FROM venue v
-                LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
-                LEFT JOIN users u ON v.user_id = u.user_id
-                WHERE v.venue_id = %s
-                GROUP BY v.venue_id, vc.availability_type
-            """, [venue_id])
+    # Format venue data for display
+    venue = {
+        'id': venue_id,
+        'name': venue_data[0],
+        'rate': float(venue_data[1]),
+        'capacity': venue_data[2],
+        'street': venue_data[3],
+        'city': venue_data[4],
+        'province': venue_data[5],
+        'postal_code': venue_data[6],
+        'image_url': venue_data[7] if venue_data[7] and venue_data[7].startswith('/media/') else f'/media/{venue_data[7]}',
+        'description': venue_data[8],
+        'owner_name': f"{venue_data[10]} {venue_data[11]}",
+        'owner_email': venue_data[12],
+        'categories': venue_data[13].split(',') if venue_data[13] else []
+    }
 
-            row = cursor.fetchone()
+    # Handle POST request for booking submission
+    if request.method == 'POST':
+        try:
+            # Extract and validate booking details from form
+            start_date = request.POST.get('start_date')
+            start_time = request.POST.get('start_time')
+            end_date = request.POST.get('end_date')
+            end_time = request.POST.get('end_time')
+            card_number = request.POST.get('card_number', '').strip()
+            card_name = request.POST.get('card_name', '').strip()
+            expiry_month = request.POST.get('expiry_month', '').strip()
+            expiry_year = request.POST.get('expiry_year', '').strip()
+            cvv = request.POST.get('cvv', '').strip()
 
-            if not row:
-                messages.error(request, "Venue not found.")
-                return redirect('users:client_dashboard')
+            # Parse datetime objects for booking period
+            start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
+            end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
 
-            # Get client information for email notifications
-            cursor.execute("""
-                SELECT first_name, last_name, email
-                FROM users
-                WHERE user_id = %s
-            """, [user_id])
-            client_info = cursor.fetchone()
-            client_name = f"{client_info[0]} {client_info[1]}"
-            client_email = client_info[2]
+            # Calculate booking duration and total amount
+            duration_hours = (end_datetime - start_datetime).total_seconds() / 3600
+            total_amount = venue['rate'] * duration_hours
 
-            if request.method == 'POST':
-                try:
-                    start_date = request.POST.get('start_date')
-                    end_date = request.POST.get('end_date')
-                    start_time = request.POST.get('start_time')
-                    end_time = request.POST.get('end_time')
-                    method = request.POST.get('method')
-                    card_number = ''.join(filter(str.isdigit, request.POST.get('card_number', '')))
-                    expiry_date = request.POST.get('expiry_date')
+            # Validate card expiry date
+            current_date = datetime.now()
+            expiry_date = datetime.strptime(f"{expiry_year}-{expiry_month}-01", "%Y-%m-%d")
+            if expiry_date < current_date:
+                messages.error(request, "Card has expired.")
+                return render(request, 'client/venue_booking.html', {'venue': venue})
 
-                    from datetime import datetime, timedelta
-                    start_dt = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
-                    end_dt = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
+            # Check for booking overlaps
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM booking
+                    WHERE venue_id = %s
+                    AND (
+                        (start_datetime <= %s AND end_datetime >= %s)
+                        OR (start_datetime <= %s AND end_datetime >= %s)
+                        OR (start_datetime >= %s AND end_datetime <= %s)
+                    )
+                """, [venue_id, start_datetime, start_datetime, end_datetime, end_datetime, start_datetime, end_datetime])
+                if cursor.fetchone()[0] > 0:
+                    messages.error(request, "This time slot is already booked.")
+                    return render(request, 'client/venue_booking.html', {'venue': venue})
 
-                    duration = (end_dt - start_dt).total_seconds() / 3600
-                    hourly_rate = float(row[2])
-                    total_amount = round(duration * hourly_rate, 2)
+            # Create payment record
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO payment (user_id, amount, method, card_last_four, status)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, [user_id, total_amount, 'Credit Card', card_number[-4:], 'Completed'])
+                payment_id = cursor.lastrowid
 
-                    if total_amount <= 0:
-                        messages.error(request, "Invalid booking duration. Please ensure your end time is after your start time.")
-                        raise ValueError("Invalid booking duration")
+            # Create booking record
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO booking (user_id, venue_id, payment_id, start_datetime, end_datetime, status)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, [user_id, venue_id, payment_id, start_datetime, end_datetime, 'Confirmed'])
 
-                    if expiry_date:
-                        try:
-                            expiry_year, expiry_month = map(int, expiry_date.split('-'))
-                            current_date = datetime.now()
-                            if expiry_year < current_date.year or (expiry_year == current_date.year and expiry_month < current_date.month):
-                                messages.error(request, "Card has expired.")
-                                raise ValueError("Expired card")
-                        except ValueError:
-                            messages.error(request, "Invalid expiry date format.")
-                            raise ValueError("Invalid expiry")
-                    else:
-                        messages.error(request, "Missing expiry date.")
-                        raise ValueError("Missing expiry")
+            # Send email notifications
+            send_booking_confirmation_email(request, venue, start_datetime, end_datetime, total_amount)
+            send_venue_owner_notification_email(venue, start_datetime, end_datetime, total_amount)
 
-                    with connection.cursor() as cursor:
-                        print(f"[DEBUG] Starting transaction for payment and booking", flush=True)
+            messages.success(request, "Booking confirmed successfully!")
+            return redirect('users:client_dashboard')
 
-                        cursor.execute("""
-                            SELECT COUNT(*) FROM booking
-                            WHERE venue_id = %s AND (
-                                (%s < end_date AND %s > start_date)
-                            )
-                        """, [venue_id, start_dt, end_dt])
-                        (overlap_count,) = cursor.fetchone()
+        except Exception as e:
+            messages.error(request, "Failed to process booking. Please try again.")
+            return render(request, 'client/venue_booking.html', {'venue': venue})
 
-                        if overlap_count > 0:
-                            messages.error(request, "This venue is already booked during the selected time period.")
-                            raise ValueError("Venue already booked")
+    # Handle GET request - calculate total amount based on time parameters
+    start_date = request.GET.get('start_date')
+    start_time = request.GET.get('start_time')
+    end_date = request.GET.get('end_date')
+    end_time = request.GET.get('end_time')
 
-                        card_last_four = card_number[-4:] if len(card_number) >= 4 else ''
+    if all([start_date, start_time, end_date, end_time]):
+        try:
+            start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
+            end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
+            duration_hours = (end_datetime - start_datetime).total_seconds() / 3600
+            total_amount = venue['rate'] * duration_hours
+            venue['total_amount'] = total_amount
+        except ValueError:
+            messages.error(request, "Invalid date/time format.")
 
-                        cursor.execute("""
-                            INSERT INTO payment (
-                                method, rate, amount, card_last_four, card_expiry
-                            ) VALUES (%s, %s, %s, %s, %s)
-                        """, [method, hourly_rate, total_amount, card_last_four, expiry_date])
-
-                        payment_id = cursor.lastrowid
-                        print(f"[DEBUG] Payment record created with ID: {payment_id}", flush=True)
-
-                        cursor.execute("""
-                            INSERT INTO booking (
-                                venue_id, user_id, start_date, end_date, payment_id
-                            ) VALUES (%s, %s, %s, %s, %s)
-                        """, [venue_id, user_id, start_dt, end_dt, payment_id])
-                        
-                        booking_id = cursor.lastrowid
-                        print(f"[DEBUG] Booking record created with ID: {booking_id}", flush=True)
-                        
-                        # Send booking confirmation email
-                        venue_name = row[1]
-                        vendor_id = row[17]
-                        
-                        send_and_log_notification(
-                            cursor, 
-                            "Booking Confirmation", 
-                            client_email,
-                            client_name,
-                            venue_name,
-                            booking_id,
-                            venue_id,
-                            user_id,
-                            payment_id,
-                            start_dt,
-                            end_dt
-                        )
-
-                    connection.commit()
-                    messages.success(request, "Venue booked successfully! A confirmation email has been sent.")
-                    return redirect('users:client_dashboard')
-
-                except ValueError as e:
-                    print(f"[DEBUG] Validation error: {e}", flush=True)
-                    if not messages.get_messages(request):
-                        messages.error(request, str(e))
-                except Exception as e:
-                    print(f"[DEBUG] Booking error: {e}", flush=True)
-                    messages.error(request, "An error occurred while processing your booking.")
-                    connection.rollback()
-
-            total_amount = None
-            if request.method == 'GET' and 'start_time' in request.GET and 'end_time' in request.GET:
-                try:
-                    start_time = request.GET['start_time']
-                    end_time = request.GET['end_time']
-                    start_dt = datetime.strptime(f"2000-01-01 {start_time}", "%Y-%m-%d %H:%M")
-                    end_dt = datetime.strptime(f"2000-01-01 {end_time}", "%Y-%m-%d %H:%M")
-                    if end_dt < start_dt:
-                        end_dt += timedelta(days=1)
-                    duration = (end_dt - start_dt).total_seconds() / 3600
-                    total_amount = round(duration * float(row[2]), 2)
-                except:
-                    total_amount = None
-
-            image_url = row[4]
-            if image_url and not image_url.startswith('/media/'):
-                image_url = f'/media/{image_url}'
-                image_url = request.build_absolute_uri(image_url)
-
-            venue = {
-                'venue_id': row[0], 'name': row[1], 'price': float(row[2]) if row[2] else 0.0,
-                'status': row[3], 'image_url': image_url, 'description': row[5],
-                'capacity': row[6], 'street': row[7], 'city': row[8], 'province': row[9],
-                'postal_code': row[10], 'categories': row[11].split(',') if row[11] else [],
-                'availability': row[12] or 'Full-Year',
-                'vendor_name': f"{row[13]} {row[14]}", 'vendor_email': row[15], 'vendor_phone': row[16]
-            }
-
-            context = {'venue': venue, 'total_amount': total_amount}
-            return render(request, 'client/venue_booking.html', context)
-
-    except Exception as e:
-        print(f"[DEBUG] venue_booking error → {e}", flush=True)
-        return redirect('users:client_dashboard')
+    return render(request, 'client/venue_booking.html', {'venue': venue})
 
 def view_bookings(request):
+    # Verify user authentication
     user_id = request.session.get('user_id')
-    print(f"[DEBUG] Starting view_bookings for user_id: {user_id}", flush=True)
-
     if not user_id:
-        messages.error(request, "You must be logged in to view bookings.")
+        messages.error(request, "Please log in to view your bookings.")
         return redirect('users:login')
 
     try:
+        # Get current datetime for booking status checks
         current_datetime = timezone.now()
         min_cancel_date = current_datetime + timedelta(days=5)
         
-        # Get client information for email notifications
+        # Get client information for notifications
         with connection.cursor() as cursor:
             cursor.execute("""
                 SELECT first_name, last_name, email
@@ -473,7 +511,7 @@ def view_bookings(request):
             booking_id = request.POST.get('booking_id')
             
             with connection.cursor() as cursor:
-                # Check if booking exists and meets cancellation criteria
+                # Verify booking exists and meets cancellation requirements
                 cursor.execute("""
                     SELECT b.booking_id, b.start_date, b.venue_id, v.name, b.payment_id, b.user_id 
                     FROM booking b
@@ -486,13 +524,13 @@ def view_bookings(request):
                 booking = cursor.fetchone()
                 
                 if booking:
-                    # Get booking details for cancellation email
+                    # Get booking details for cancellation notification
                     booking_id = booking[0]
                     venue_id = booking[2]
                     venue_name = booking[3]
                     payment_id = booking[4]
                     
-                    # Format the cancellation email before deleting from the database
+                    # Send cancellation notification
                     send_and_log_notification(
                         cursor,
                         "Cancellation",
@@ -505,12 +543,12 @@ def view_bookings(request):
                         payment_id
                     )
 
+                    # Delete the booking
                     cursor.execute("""
                         DELETE FROM booking 
                         WHERE booking_id = %s
                     """, [booking_id])
 
-                    
                     connection.commit()
                     messages.success(request, "Booking successfully cancelled. A confirmation email has been sent.")
                     return redirect('users:view_bookings')
@@ -536,11 +574,13 @@ def view_bookings(request):
             """, [min_cancel_date, user_id, current_datetime])
             
             for row in cursor.fetchall():
+                # Format image URL for display
                 image_url = row[5]
                 if image_url and not image_url.startswith('/media/'):
                     image_url = f'/media/{image_url}'
                     image_url = request.build_absolute_uri(image_url)
                 
+                # Create booking dictionary with formatted data
                 current_bookings.append({
                     'id': row[0],
                     'start_date': row[1],
@@ -574,11 +614,13 @@ def view_bookings(request):
             """, [user_id, current_datetime])
             
             for row in cursor.fetchall():
+                # Format image URL for display
                 image_url = row[5]
                 if image_url and not image_url.startswith('/media/'):
                     image_url = f'/media/{image_url}'
                     image_url = request.build_absolute_uri(image_url)
                 
+                # Create booking dictionary with formatted data
                 past_bookings.append({
                     'id': row[0],
                     'start_date': row[1],
@@ -602,6 +644,188 @@ def view_bookings(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] view_bookings error → {e}", file=sys.stderr)
         messages.error(request, "Could not load bookings.")
+        return redirect('users:client_dashboard')
+
+def message_vendor(request, vendor_id):
+    # Verify user authentication
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, "Please log in to message vendors.")
+        return redirect('users:login')
+
+    try:
+        with connection.cursor() as cursor:
+            # Get vendor details
+            cursor.execute("""
+                SELECT first_name, last_name, email, user_type
+                FROM users
+                WHERE user_id = %s AND user_type = 'Vendor'
+            """, [vendor_id])
+            
+            vendor = cursor.fetchone()
+            if not vendor:
+                messages.error(request, "Vendor not found.")
+                return redirect('users:client_dashboard')
+                
+            vendor_info = {
+                'id': vendor_id,
+                'name': f"{vendor[0]} {vendor[1]}",
+                'email': vendor[2]
+            }
+            
+            # Get conversation history
+            cursor.execute("""
+                SELECT m.message_id, m.content, m.date_sent,
+                       s.first_name as sender_first_name,
+                       s.last_name as sender_last_name,
+                       m.sender_id
+                FROM message m
+                JOIN users s ON m.sender_id = s.user_id
+                WHERE (m.sender_id = %s AND m.receiver_id = %s)
+                   OR (m.sender_id = %s AND m.receiver_id = %s)
+                ORDER BY m.date_sent ASC
+            """, [user_id, vendor_id, vendor_id, user_id])
+            
+            messages_list = []
+            for row in cursor.fetchall():
+                messages_list.append({
+                    'id': row[0],
+                    'content': row[1],
+                    'date_sent': row[2],
+                    'sender_name': f"{row[3]} {row[4]}",
+                    'is_mine': row[5] == user_id
+                })
+            
+            return render(request, 'client/message_vendor.html', {
+                'vendor': vendor_info,
+                'messages': messages_list
+            })
+            
+    except Exception as e:
+        messages.error(request, "Could not load message interface.")
+        return redirect('users:client_dashboard')
+
+def send_message(request):
+    # Verify request method and user authentication
+    if request.method != 'POST':
+        return redirect('users:client_dashboard')
+        
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return JsonResponse({'error': 'Not logged in'}, status=401)
+        
+    try:
+        # Extract message details
+        receiver_id = request.POST.get('receiver_id')
+        content = request.POST.get('content')
+        
+        if not content or not content.strip():
+            return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+            
+        with connection.cursor() as cursor:
+            # Verify receiver exists and is a vendor
+            cursor.execute("""
+                SELECT user_id FROM users
+                WHERE user_id = %s AND user_type = 'Vendor'
+            """, [receiver_id])
+            
+            if not cursor.fetchone():
+                return JsonResponse({'error': 'Invalid receiver'}, status=400)
+                
+            # Insert the message
+            cursor.execute("""
+                INSERT INTO message (sender_id, receiver_id, content)
+                VALUES (%s, %s, %s)
+            """, [user_id, receiver_id, content.strip()])
+            
+            message_id = cursor.lastrowid
+            
+            # Get sender name for response
+            cursor.execute("""
+                SELECT first_name, last_name
+                FROM users
+                WHERE user_id = %s
+            """, [user_id])
+            
+            sender = cursor.fetchone()
+            sender_name = f"{sender[0]} {sender[1]}"
+            
+            connection.commit()
+            
+            return JsonResponse({
+                'success': True,
+                'message': {
+                    'id': message_id,
+                    'content': content.strip(),
+                    'sender_name': sender_name,
+                    'date_sent': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'is_mine': True
+                }
+            })
+            
+    except Exception as e:
+        return JsonResponse({'error': 'Failed to send message'}, status=500)
+
+def client_messages(request):
+    # Verify user authentication
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, 'Please log in to view your messages.')
+        return redirect('users:client_login')
+
+    try:
+        with connection.cursor() as cursor:
+            # Get all conversations with vendors including the last message and date
+            cursor.execute("""
+                SELECT DISTINCT 
+                    v.user_id as vendor_id,
+                    CONCAT(v.first_name, ' ', v.last_name) as vendor_name,
+                    v.email as vendor_email,
+                    COALESCE(
+                        (
+                            SELECT content 
+                            FROM message m2 
+                            WHERE (m2.sender_id = v.user_id AND m2.receiver_id = %s)
+                               OR (m2.sender_id = %s AND m2.receiver_id = v.user_id)
+                            ORDER BY m2.date_sent DESC 
+                            LIMIT 1
+                        ), 'No messages yet'
+                    ) as last_message,
+                    COALESCE(
+                        (
+                            SELECT date_sent 
+                            FROM message m3 
+                            WHERE (m3.sender_id = v.user_id AND m3.receiver_id = %s)
+                               OR (m3.sender_id = %s AND m3.receiver_id = v.user_id)
+                            ORDER BY m3.date_sent DESC 
+                            LIMIT 1
+                        ), NOW()
+                    ) as last_message_date
+                FROM message m
+                JOIN users v ON (m.sender_id = v.user_id OR m.receiver_id = v.user_id)
+                WHERE (m.sender_id = %s OR m.receiver_id = %s)
+                AND v.user_id != %s
+                AND v.user_type = 'Vendor'
+                ORDER BY 
+                    last_message_date DESC
+            """, [user_id, user_id, user_id, user_id, user_id, user_id, user_id])
+            
+            conversations = []
+            for row in cursor.fetchall():
+                conversations.append({
+                    'vendor_id': row[0],
+                    'vendor_name': row[1],
+                    'vendor_email': row[2],
+                    'last_message': row[3],
+                    'last_message_date': row[4]
+                })
+
+        return render(request, 'client/messages.html', {
+            'conversations': conversations,
+            'has_conversations': bool(conversations)
+        })
+
+    except Exception as e:
+        messages.error(request, 'Failed to load messages. Please try again later.')
         return redirect('users:client_dashboard')

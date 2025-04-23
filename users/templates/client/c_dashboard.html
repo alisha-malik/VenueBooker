@@ -521,6 +521,123 @@
                 flex-direction: column;
             }
         }
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-button {
+            padding: 0.5rem 1rem;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+
+        .message-icon {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .message-icon .view-bookings-link {
+            cursor: pointer;
+        }
+
+        .conversations-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 1rem;
+            display: none;
+            z-index: 1000;
+            margin-top: 0.5rem;
+        }
+
+        .message-icon.active .conversations-dropdown {
+            display: block;
+        }
+
+        .conversation-item {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e8f4f8;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: background-color 0.2s;
+        }
+
+        .conversation-item:last-child {
+            border-bottom: none;
+        }
+
+        .conversation-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.3rem;
+        }
+
+        .vendor-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .message-date {
+            font-size: 0.8rem;
+            color: #95a5a6;
+        }
+
+        .last-message {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .no-conversations {
+            text-align: center;
+            padding: 1rem;
+            color: #7f8c8d;
+        }
+
+        /* Message Alert Styles */
+        .messages-container {
+            margin-bottom: 2rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -529,13 +646,29 @@
     <nav class="navbar">
         <a href="{% url 'users:client_dashboard' %}" class="navbar-brand">VenueBooker</a>
         <div class="navbar-right">
-            <a href="{% url 'users:view_bookings' %}" class="view-bookings-link">View Bookings</a>
-            <a href="{% url 'users:profile' %}" class="profile-icon">👤</a>
+            <div class="nav-buttons">
+                <a href="{% url 'users:view_bookings' %}" class="view-bookings-link">View Bookings</a>
+                <a href="{% url 'users:client_messages' %}" class="view-bookings-link">
+                    <i class="fas fa-envelope"></i> Messages
+                </a>
+                <a href="{% url 'users:profile' %}" class="profile-icon">👤</a>
+            </div>
         </div>
     </nav>
 
     <!-- Main Content -->
     <div class="main-content">
+        <!-- Add Error Messages Section -->
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Search and Filter Section -->
         <div class="search-filter-section">
             <div class="search-container">
@@ -546,7 +679,7 @@
                     </div>
                     <div class="button-group">
                         {% if request.GET.venue_name or request.GET.categories or request.GET.rate or request.GET.province or request.GET.city or request.GET.street or request.GET.status or request.GET.availability_type %}
-                            <button type="button" class="clear-all" onclick="window.location.href='{% url 'users:client_dashboard' %}'" title="Clear all filters">
+                            <button type="button" class="clear-all" onclick="clearAllFilters()" title="Clear all filters">
                                 <i class="fas fa-times"></i>
                             </button>
                         {% endif %}
@@ -719,6 +852,10 @@
             document.body.style.overflow = 'hidden';
         }
 
+        function clearAllFilters() {
+            window.location.href = "{% url 'users:client_dashboard' %}";
+        }
+
         function clearFilter(type, value) {
             let url = new URL(window.location.href);
             let params = new URLSearchParams(url.search);
@@ -773,6 +910,21 @@
         // Initialize with current value
         document.addEventListener('DOMContentLoaded', function() {
             priceValue.textContent = priceSlider.value;
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageIcon = document.getElementById('messageIcon');
+            
+            messageIcon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!messageIcon.contains(e.target)) {
+                    messageIcon.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>

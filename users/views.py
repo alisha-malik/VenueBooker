@@ -37,7 +37,7 @@ def register(request):
 
         with connection.cursor() as cursor:
             try:
-                # Check if this exact email and user_type combination already exists
+                # Check if the email and user_type combination already exists
                 cursor.execute("SELECT 1 FROM users WHERE email = %s AND user_type = %s", [email, user_type])
                 if cursor.fetchone():
                     messages.error(request, f"This email is already registered as a {user_type}. If you forgot your password, you can reset it.")
@@ -91,7 +91,7 @@ def user_login(request):
 
         with connection.cursor() as cursor:
             try:
-                # Fetch by email only, not user_type — we want to validate the type afterward
+                # Select by email only not user_type (user_type is validated afterward)
                 cursor.execute("""
                     SELECT user_id, first_name, last_name, phone, email, user_type, password
                     FROM users WHERE email = %s
@@ -106,6 +106,7 @@ def user_login(request):
                         request.session['user_id'] = user_id
                         request.session['user_type'] = actual_type
 
+                        # Redirect to the appropriate dashboard based on user type
                         if actual_type == "Client":
                             return redirect('users:client_dashboard')
                         else:
@@ -127,7 +128,7 @@ def user_login(request):
 
             except Exception as e:
                 messages.error(request, "Login error occurred.")
-                print(f"[DEBUG] Login error: {str(e)}")
+                print(f"Login error: {str(e)}")
 
     return render(request, 'users/login.html')
 
@@ -153,7 +154,7 @@ def password_reset(request):
 
                 user_id, first_name, last_name, email, user_type = user_data
                 
-                # If we have a new password, update it
+                # If we a new password is provided update it
                 if new_password1 and new_password2:
                     if new_password1 != new_password2:
                         messages.error(request, "Passwords don't match.")
@@ -173,14 +174,14 @@ def password_reset(request):
                     messages.success(request, "Your password has been reset successfully.")
                     return redirect('users:login')
                 
-                # If we only have an email, show the password form
+                # If the email is provided but no new password is provided - display the password form
                 return render(request, 'users/password_reset.html', {
                     'email': email,
                     'show_password_form': True
                 })
 
         except Exception as e:
-            print(f"[DEBUG] Password reset error: {str(e)}")
+            print(f"Password reset error: {str(e)}")
             messages.error(request, "An error occurred while processing your request.")
             return redirect('users:password_reset')
     
@@ -193,6 +194,7 @@ def profile(request):
     if not user_id:
         return redirect('users:login')
 
+    # Get user profile data from the database
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT first_name, last_name, phone, email, user_type
@@ -216,9 +218,14 @@ def profile(request):
 
 
 def user_logout(request):
+    # Clear all messages
+    storage = messages.get_messages(request)
+    storage.used = True
+    
+    # Clear session
     logout(request)
     request.session.flush()
-    messages.success(request, "You have been logged out")
+    
     return redirect('users:login')
 
 def venue_booking(request, venue_id):

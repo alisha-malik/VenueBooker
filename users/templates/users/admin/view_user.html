@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View User Details | Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 3rem 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: #e9ecef;
+        }
+
+        .profile-container {
+            display: flex;
+            flex-direction: row;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .profile-image {
+            width: 40%;
+            background-color: #ecf0f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            font-size: 2rem;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .profile-info {
+            width: 60%;
+            padding: 2rem;
+        }
+
+        .profile-info h2 {
+            margin-top: 0;
+            margin-bottom: 0.3rem;
+            color: #2c3e50;
+        }
+
+        .profile-info em {
+            font-size: 1rem;
+            color: #7f8c8d;
+        }
+
+        .info-block {
+            margin-top: 1.8rem;
+        }
+
+        .info-block p {
+            margin: 0.7rem 0;
+            font-size: 1.05rem;
+            color: #34495e;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .data-section {
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .data-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #f1f2f6;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .data-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .data-card h4 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+        }
+
+        .data-card p {
+            margin: 0.5rem 0;
+            color: #34495e;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.65rem 1.4rem;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 2rem;
+            margin-right: 1rem;
+            transition: background-color 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .profile-container {
+                flex-direction: column;
+            }
+
+            .profile-image, .profile-info {
+                width: 100%;
+            }
+
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'users:admin_dashboard' %}" class="back-button">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+
+        <div class="profile-container">
+            <div class="profile-image">
+                {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+            </div>
+
+            <div class="profile-info">
+                <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+                <p><em>{{ user.user_type }}</em></p>
+
+                <div class="info-block">
+                    <p><span class="label">Email:</span> {{ user.email }}</p>
+                    <p><span class="label">Phone:</span> {{ user.phone }}</p>
+                    <p><span class="label">User ID:</span> {{ user.id }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if user.user_type == 'Client' and bookings %}
+        <div class="data-section">
+            <h3>Recent Bookings</h3>
+            <div class="data-grid">
+                {% for booking in bookings %}
+                <div class="data-card">
+                    <h4>{{ booking.venue_name }}</h4>
+                    <p><span class="label">Start:</span> {{ booking.start_date }}</p>
+                    <p><span class="label">End:</span> {{ booking.end_date }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user.user_type == 'Vendor' and venues %}
+        <div class="data-section">
+            <h3>Venues</h3>
+            <div class="data-grid">
+                {% for venue in venues %}
+                <div class="data-card">
+                    <h4>{{ venue.name }}</h4>
+                    <p><span class="label">Status:</span> {{ venue.status }}</p>
+                    <p><span class="label">Rate:</span> ${{ venue.rate }}</p>
+                    <p><span class="label">Location:</span> {{ venue.city }}, {{ venue.province }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html> 

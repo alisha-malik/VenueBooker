@@ -1,0 +1,167 @@
+{% load static %}
+
+{% block content %}
+<style>
+    body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f8f9fa;
+        color: #2d3436;
+        line-height: 1.6;
+    }
+
+    .transaction-container {
+        max-width: 800px;
+        margin: 3rem auto;
+        padding: 0 2rem;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #2d3436;
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 2rem;
+    }
+
+    .back-link:hover {
+        color: #3498db;
+    }
+
+    .transaction-header {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+
+    .transaction-title {
+        font-size: 2rem;
+        color: #2d3436;
+        margin: 0 0 1rem 0;
+    }
+
+    .transaction-id {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+
+    .info-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        color: #2d3436;
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #3498db;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-label {
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+
+    .info-value {
+        color: #2d3436;
+        font-weight: 500;
+    }
+
+    .amount-section {
+        background: #e8f4f8;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-top: 2rem;
+    }
+
+    .total-amount {
+        font-size: 2rem;
+        color: #2d3436;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .amount-details {
+        color: #7f8c8d;
+        margin-top: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .transaction-container {
+            padding: 0 1rem;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<div class="transaction-container">
+    <a href="{% url 'users:admin_dashboard' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+
+    <div class="transaction-header">
+        <h1 class="transaction-title">Transaction Details</h1>
+        <div class="transaction-id">Transaction #{{ transaction.id }}</div>
+    </div>
+
+    <div class="info-section">
+        <h2 class="section-title">Booking Information</h2>
+        <div class="info-grid">
+            <span class="info-label">Venue:</span>
+            <span class="info-value">{{ transaction.venue_name }}</span>
+            
+            <span class="info-label">Start Date:</span>
+            <span class="info-value">{{ transaction.start_date }}</span>
+            
+            <span class="info-label">End Date:</span>
+            <span class="info-value">{{ transaction.end_date }}</span>
+            
+            <span class="info-label">Duration:</span>
+            <span class="info-value">{{ transaction.duration_hours|floatformat:1 }} hours</span>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2 class="section-title">Client Information</h2>
+        <div class="info-grid">
+            <span class="info-label">Name:</span>
+            <span class="info-value">{{ transaction.client_name }}</span>
+            
+            <span class="info-label">Email:</span>
+            <span class="info-value">{{ transaction.client_email }}</span>
+            
+            {% if transaction.client_phone %}
+            <span class="info-label">Phone:</span>
+            <span class="info-value">{{ transaction.client_phone }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="amount-section">
+        <h2 class="section-title">Payment Details</h2>
+        <p class="total-amount">${{ transaction.total_amount|floatformat:2 }}</p>
+        <p class="amount-details">
+            Calculated at ${{ transaction.hourly_rate|floatformat:2 }}/hour for {{ transaction.duration_hours|floatformat:1 }} hours
+        </p>
+    </div>
+</div>
+{% endblock %} 
