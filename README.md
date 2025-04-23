@@ -8,11 +8,15 @@ A simple web application for booking venues.
    ```bash
    # Clone the repository
    git clone git@github.com:alisha-malik/VenueBooker.git
-   cd VB
+   cd into project folder
 
-   # Create virtual environment (recommended)
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   # Create virtual environment Mac
+   python3 -m venv venv or python -m venv venv
+   source venv/bin/activate
+
+   # Create virtual environment Windows
+   python3 -m venv venv or python -m venv venv
+   venv\Scripts\activate
 
    # Install dependencies
    pip install -r requirements.txt
@@ -25,19 +29,19 @@ A simple web application for booking venues.
 
 3. **Open in Browser**
    ```
-   http://127.0.0.1:5000/
+   http://127.0.0.1:8000/
    ```
 
 ## Access Points
 
 ### User URLs
-- **Client/Vendor Login**: `/users/login/`
-- **Client Dashboard**: `/users/client/dashboard/`
-- **Vendor Dashboard**: `/users/vendor/dashboard/`
+- **Client/Vendor Login**: `http://127.0.0.1:8000/users/login/`
+- **Client Dashboard**: `http://127.0.0.1:8000/users/client/dashboard/`
+- **Vendor Dashboard**: `http://127.0.0.1:8000/users/vendor/dashboard/`
 
 ### Admin URLs
-- **Admin Login**: `/users/admin_login/`
-- **Admin Dashboard**: `/admin/dashboard/`
+- **Admin Login**: `http://127.0.0.1:8000/users/admin_login/`
+- **Admin Dashboard**: `http://127.0.0.1:8000/admin/dashboard/`
 
 ### Default Admin Credentials
 ```
