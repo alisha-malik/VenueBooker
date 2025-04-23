@@ -810,7 +810,7 @@
 
         <div class="booking-form">
             <h2 style="margin-top: 0; margin-bottom: 1.5rem;">Booking Details</h2>
-            <div class="booking-conflict-message" id="booking-conflict-message">
+            <div class="booking-conflict-message {% if booking_conflict %}show{% endif %}" id="booking-conflict-message">
                 This venue is already booked for the selected date and time. Please choose a different time slot.
             </div>
             <form method="post">

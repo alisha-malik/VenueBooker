@@ -284,9 +284,9 @@ def edit_venue(request, venue_id):
     all_categories = [
         'Wedding Hall', 'Conference Center', 'Banquet Hall', 'Music Venue', 'Outdoor Park',
         'Rooftop Terrace', 'Studio Space', 'Private Dining Room', 'Theater', 'Exhibition Center',
-        'Garden Venue', 'Community Hall', 'Co-working Space',
-        'Winter Venue', 'Spring Venue', 'Summer Venue', 'Fall Venue'
+        'Garden Venue', 'Community Hall', 'Co-working Space'
     ]
+    seasons = ['Winter Venue', 'Spring Venue', 'Summer Venue', 'Fall Venue']
     availability_options = ['Full-Year', 'Seasonal']
 
     # Handle POST request for venue updates
@@ -357,6 +357,7 @@ def edit_venue(request, venue_id):
                 'provinces': provinces,
                 'all_categories': all_categories,
                 'availability_options': availability_options,
+                'seasons': seasons,
                 'field_errors': field_errors
             })
 
@@ -429,7 +430,9 @@ def edit_venue(request, venue_id):
         'venue': venue,
         'provinces': provinces,
         'all_categories': all_categories,
-        'availability_options': availability_options
+        'availability_options': availability_options,
+        'seasons': seasons,
+        'field_errors': field_errors if 'field_errors' in locals() else {}
     })
 
 

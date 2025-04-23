@@ -302,6 +302,23 @@
                 <input type="text" name="postal_code" id="postal_code" value="{{ venue.postal_code }}" class="{% if field_errors.postal_code %}error-field{% endif %}" {% if venue.has_bookings %}disabled{% endif %}>
                 {% if field_errors.postal_code %}<div class="error">{{ field_errors.postal_code }}</div>{% endif %}
 
+                <label for="availability_type">Availability</label>
+                <select name="availability_type" id="availability_type" onchange="toggleSeasonalOptions()" {% if venue.has_bookings %}disabled{% endif %}>
+                    {% for option in availability_options %}
+                        <option value="{{ option }}" {% if venue.availability_type == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+
+                <div id="seasonal-categories" style="display:none; margin-top:1rem;">
+                    <label>Select Seasonal Categories</label>
+                    <div class="category-buttons">
+                        {% for season in seasons %}
+                            <input type="checkbox" name="categories" value="{{ season }}" id="season-{{ forloop.counter }}" {% if season in venue.selected_categories %}checked{% endif %} {% if venue.has_bookings %}disabled{% endif %}>
+                            <label for="season-{{ forloop.counter }}">{{ season }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+
                 <label>Select Venue Categories</label>
                 <div class="category-buttons">
                     {% for c in all_categories %}
@@ -309,13 +326,6 @@
                         <label for="category-{{ forloop.counter }}">{{ c }}</label>
                     {% endfor %}
                 </div>
-
-                <label for="availability_type">Availability</label>
-                <select name="availability_type" id="availability_type" {% if venue.has_bookings %}disabled{% endif %}>
-                    {% for option in availability_options %}
-                        <option value="{{ option }}" {% if venue.availability_type == option %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
-                </select>
 
                 {% if not venue.has_bookings %}
                     <div class="submit-group">
@@ -332,6 +342,12 @@
     </div>
 
     <script>
+        function toggleSeasonalOptions() {
+            const availability = document.getElementById('availability_type').value;
+            const seasonalSection = document.getElementById('seasonal-categories');
+            seasonalSection.style.display = availability === 'Seasonal' ? 'block' : 'none';
+        }
+
         function previewImage(event) {
             const previewDiv = document.getElementById('image-preview');
             const file = event.target.files[0];
@@ -343,6 +359,11 @@
                 previewDiv.appendChild(img);
             }
         }
+
+        // Call this on page load to set initial state
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleSeasonalOptions();
+        });
     </script>
 </body>
 </html>

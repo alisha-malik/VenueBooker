@@ -119,8 +119,11 @@ def user_login(request):
                         })
 
                     if check_password(password, hashed_password):
+                        # Store user information in session
                         request.session['user_id'] = user_id
                         request.session['user_type'] = actual_type
+                        request.session['email'] = email
+                        request.session['name'] = f"{first_name} {last_name}"
 
                         # Route to the appropriate dashboard based on user type
                         if actual_type == "Client":
@@ -246,7 +249,9 @@ def user_logout(request):
     return redirect('users:login')
 
 def venue_booking(request, venue_id):
+    print(f"[DEBUG] Starting venue booking process for venue_id: {venue_id}")
     if request.method == 'POST':
+        print("[DEBUG] Processing POST request")
         # Get form data
         start_date = request.POST.get('start_date')
         start_time = request.POST.get('start_time')
@@ -256,9 +261,31 @@ def venue_booking(request, venue_id):
         card_number = request.POST.get('card_number')
         expiry_date = request.POST.get('expiry_date')
         cvv = request.POST.get('cvv')
+        
+        print(f"""[DEBUG] Form data received:
+            start_date: {start_date}
+            start_time: {start_time}
+            end_date: {end_date}
+            end_time: {end_time}
+            method: {method}
+            card_number: {'*' * (len(card_number)-4) + card_number[-4:] if card_number else None}
+            expiry_date: {expiry_date}
+            cvv: {'*' * len(cvv) if cvv else None}
+        """)
 
         # Validate required fields
         if not all([start_date, start_time, end_date, end_time, method, card_number, expiry_date, cvv]):
+            print("[DEBUG] Missing required fields")
+            missing_fields = []
+            if not start_date: missing_fields.append('start_date')
+            if not start_time: missing_fields.append('start_time')
+            if not end_date: missing_fields.append('end_date')
+            if not end_time: missing_fields.append('end_time')
+            if not method: missing_fields.append('method')
+            if not card_number: missing_fields.append('card_number')
+            if not expiry_date: missing_fields.append('expiry_date')
+            if not cvv: missing_fields.append('cvv')
+            print(f"[DEBUG] Missing fields: {', '.join(missing_fields)}")
             messages.error(request, 'All fields are required')
             return render(request, 'client/venue_booking.html', {
                 'venue': get_object_or_404(Venue, venue_id=venue_id),
@@ -267,14 +294,19 @@ def venue_booking(request, venue_id):
             })
 
         try:
+            print("[DEBUG] Converting dates and times")
             # Convert dates and times to datetime objects
             start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
             end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
             expiry_date_obj = datetime.strptime(expiry_date, "%Y-%m").date()
+            
+            print(f"[DEBUG] Converted datetimes - Start: {start_datetime}, End: {end_datetime}")
 
             # Validate booking dates
             min_booking_date = datetime.now() + timedelta(days=5)
+            print(f"[DEBUG] Minimum booking date: {min_booking_date}")
             if start_datetime < min_booking_date:
+                print("[DEBUG] Booking date too soon")
                 messages.error(request, 'Booking must be at least 5 days in advance')
                 return render(request, 'client/venue_booking.html', {
                     'venue': get_object_or_404(Venue, venue_id=venue_id),
@@ -283,6 +315,7 @@ def venue_booking(request, venue_id):
                 })
 
             if end_datetime <= start_datetime:
+                print("[DEBUG] End time before or equal to start time")
                 messages.error(request, 'End time must be after start time')
                 return render(request, 'client/venue_booking.html', {
                     'venue': get_object_or_404(Venue, venue_id=venue_id),
@@ -291,7 +324,9 @@ def venue_booking(request, venue_id):
                 })
 
             duration = end_datetime - start_datetime
+            print(f"[DEBUG] Booking duration: {duration}")
             if duration.total_seconds() < 3600:
+                print("[DEBUG] Duration less than 1 hour")
                 messages.error(request, 'Booking duration must be at least 1 hour')
                 return render(request, 'client/venue_booking.html', {
                     'venue': get_object_or_404(Venue, venue_id=venue_id),
@@ -327,29 +362,71 @@ def venue_booking(request, venue_id):
                     'form_data': request.POST
                 })
 
-            # Create booking record
+            # Calculate total amount based on duration and venue rate
+            duration_hours = (end_datetime - start_datetime).total_seconds() / 3600
+            
+            print("[DEBUG] Fetching venue rate")
+            # Get venue rate
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO bookings 
-                    (venue_id, client_id, start_datetime, end_datetime, 
-                     payment_method, card_last_four, card_expiry, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, [
-                    venue_id,
-                    request.session.get('user_id'),
-                    start_datetime,
-                    end_datetime,
-                    method,
-                    card_number[-4:],
-                    expiry_date,
-                    'pending'
-                ])
+                    SELECT rate FROM venue WHERE venue_id = %s
+                """, [venue_id])
+                venue_rate = cursor.fetchone()[0]
+                total_amount = float(venue_rate) * duration_hours
+                print(f"[DEBUG] Venue rate: {venue_rate}, Total amount: {total_amount}")
 
-            messages.success(request, 'Booking request submitted successfully!')
-            return redirect('users:client_dashboard')
+            # Start transaction for payment and booking
+            print("[DEBUG] Starting database transaction")
+            with connection.cursor() as cursor:
+                try:
+                    # Create payment record first
+                    print("[DEBUG] Creating payment record")
+                    cursor.execute("""
+                        INSERT INTO payment (method, amount, card_last_four, card_expiry)
+                        VALUES (%s, %s, %s, %s)
+                        RETURNING payment_id
+                    """, [
+                        method,
+                        total_amount,
+                        card_number[-4:],
+                        expiry_date
+                    ])
+                    payment_id = cursor.fetchone()[0]
+                    print(f"[DEBUG] Payment record created with ID: {payment_id}")
+
+                    # Create booking record with correct schema
+                    print("[DEBUG] Creating booking record")
+                    cursor.execute("""
+                        INSERT INTO booking 
+                        (venue_id, user_id, payment_id, start_date, end_date)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, [
+                        venue_id,
+                        request.session.get('user_id'),
+                        payment_id,
+                        start_datetime,
+                        end_datetime
+                    ])
+                    print("[DEBUG] Booking record created")
+
+                    # Commit the transaction
+                    print("[DEBUG] Committing transaction")
+                    connection.commit()
+                    print("[DEBUG] Transaction committed successfully")
+                    
+                    messages.success(request, 'Booking request submitted successfully!')
+                    return redirect('users:client_dashboard')
+                    
+                except Exception as e:
+                    # Rollback in case of error
+                    print(f"[DEBUG] Error in transaction: {str(e)}")
+                    print("[DEBUG] Rolling back transaction")
+                    connection.rollback()
+                    raise e
 
         except Exception as e:
-            messages.error(request, 'An error occurred while processing your booking. Please try again.')
+            print(f"[DEBUG] Final error handler: {str(e)}")
+            messages.error(request, f'An error occurred while processing your booking: {str(e)}')
             return render(request, 'client/venue_booking.html', {
                 'venue': get_object_or_404(Venue, venue_id=venue_id),
                 'today': datetime.now().date(),
@@ -357,6 +434,7 @@ def venue_booking(request, venue_id):
             })
 
     # GET request - show booking form
+    print("[DEBUG] Processing GET request - showing booking form")
     return render(request, 'client/venue_booking.html', {
         'venue': get_object_or_404(Venue, venue_id=venue_id),
         'today': datetime.now().date()

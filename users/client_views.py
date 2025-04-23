@@ -167,7 +167,8 @@ def client_dashboard(request):
     base_query = """
         SELECT DISTINCT v.venue_id, v.name, v.rate, v.capacity, v.street, v.city, v.province, 
                v.postal_code, v.image_url, v.description, v.status,
-               GROUP_CONCAT(DISTINCT vc.category SEPARATOR ',') as categories
+               GROUP_CONCAT(DISTINCT vc.category SEPARATOR ',') as categories,
+               ANY_VALUE(vc.availability_type) as availability_type
         FROM venue v
         LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
         WHERE 1=1
@@ -223,9 +224,8 @@ def client_dashboard(request):
         try:
             cursor.execute(base_query, query_params)
             venues = []
-            rows = cursor.fetchall()
             
-            for row in rows:
+            for row in cursor.fetchall():
                 # Format image URL to ensure proper serving
                 image_url = row[8]
                 if image_url and not image_url.startswith('/media/'):
@@ -244,7 +244,8 @@ def client_dashboard(request):
                     'image_url': image_url,
                     'description': row[9],
                     'status': row[10],
-                    'categories': row[11].split(',') if row[11] else []
+                    'categories': row[11].split(',') if row[11] else [],
+                    'availability': row[12] if row[12] else 'Full-Year'
                 }
                 venues.append(venue)
         except Exception as e:
@@ -345,7 +346,10 @@ def venue_detail(request, venue_id):
                 LEFT JOIN venue_category vc ON v.venue_id = vc.venue_id
                 LEFT JOIN users u ON v.user_id = u.user_id
                 WHERE v.venue_id = %s
-                GROUP BY v.venue_id, vc.availability_type
+                GROUP BY v.venue_id, v.name, v.rate, v.status, v.image_url, v.description,
+                         v.capacity, v.street, v.city, v.province, v.postal_code,
+                         vc.availability_type, u.first_name, u.last_name, u.email, u.phone,
+                         v.user_id
             """, [venue_id])
             
             row = cursor.fetchone()
@@ -363,17 +367,17 @@ def venue_detail(request, venue_id):
             venue = {
                 'id': row[0],
                 'name': row[1],
-                'price': float(row[2]) if row[2] else 0.0,
-                'status': row[3],
+                'price': float(row[2]) if row[2] else 0.0,  # Handle decimal(10,2)
+                'status': row[3],  # enum('Active','Inactive','Under Maintenance')
                 'image_url': image_url,
                 'description': row[5],
                 'capacity': row[6],
                 'street': row[7],
                 'city': row[8],
-                'province': row[9],
+                'province': row[9], 
                 'postal_code': row[10],
                 'categories': row[11].split(',') if row[11] else [],
-                'availability': row[12] or 'Full-Year',
+                'availability': row[12],  
                 'vendor_name': f"{row[13]} {row[14]}",
                 'vendor_email': row[15],
                 'vendor_phone': row[16],
@@ -400,7 +404,7 @@ def venue_booking(request, venue_id):
         cursor.execute("""
             SELECT v.name, v.rate, v.capacity, v.street, v.city, v.province, 
                    v.postal_code, v.image_url, v.description, v.status,
-                   u.first_name, u.last_name, u.email,
+                   u.first_name, u.last_name, u.email, u.phone,
                    GROUP_CONCAT(vc.category) as categories
             FROM venue v
             JOIN users u ON v.user_id = u.user_id
@@ -427,9 +431,10 @@ def venue_booking(request, venue_id):
         'postal_code': venue_data[6],
         'image_url': venue_data[7] if venue_data[7] and venue_data[7].startswith('/media/') else f'/media/{venue_data[7]}',
         'description': venue_data[8],
-        'owner_name': f"{venue_data[10]} {venue_data[11]}",
-        'owner_email': venue_data[12],
-        'categories': venue_data[13].split(',') if venue_data[13] else []
+        'vendor_name': f"{venue_data[10]} {venue_data[11]}",
+        'vendor_email': venue_data[12],
+        'vendor_phone': venue_data[13],
+        'categories': venue_data[14].split(',') if venue_data[14] else []
     }
 
     # Handle POST request for booking submission
@@ -444,15 +449,6 @@ def venue_booking(request, venue_id):
             expiry_date = request.POST.get('expiry_date', '').strip()  # YYYY-MM format
             method = request.POST.get('method', '').strip()
             cvv = request.POST.get('cvv', '').strip()
-
-            # Check database schema
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT COLUMN_NAME 
-                    FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_NAME = 'booking'
-                """)
-                columns = cursor.fetchall()
 
             if not all([start_date, start_time, end_date, end_time, card_number, expiry_date, method, cvv]):
                 missing_fields = []
@@ -470,14 +466,27 @@ def venue_booking(request, venue_id):
             try:
                 start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
                 end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
+                
+                # Basic validation checks
+                current_time = datetime.now()
+                
+                if start_datetime <= current_time:
+                    raise ValueError("Booking start time must be in the future")
+                
+                if end_datetime <= start_datetime:
+                    raise ValueError("End time must be after start time")
+                
+                # Calculate duration
+                duration_hours = (end_datetime - start_datetime).total_seconds() / 3600
+                if duration_hours < 1:
+                    raise ValueError("Booking must be at least 1 hour long")
+                
+                total_amount = venue['rate'] * duration_hours
+
             except ValueError as e:
-                raise ValueError(f"Invalid date/time format: {str(e)}")
+                raise ValueError(f"Invalid date/time: {str(e)}")
 
-            # Calculate booking duration and total amount
-            duration_hours = (end_datetime - start_datetime).total_seconds() / 3600
-            total_amount = venue['rate'] * duration_hours
-
-            # Validate card expiry date (now in YYYY-MM format)
+            # Validate card expiry date
             try:
                 expiry_year, expiry_month = expiry_date.split('-')
                 current_date = datetime.now()
@@ -487,30 +496,38 @@ def venue_booking(request, venue_id):
             except ValueError as e:
                 raise ValueError(f"Invalid expiry date: {str(e)}")
 
-            # Check for booking overlaps
+            # Use a single connection for all database operations
             with connection.cursor() as cursor:
+                # Check for booking overlaps
                 cursor.execute("""
                     SELECT COUNT(*) FROM booking
                     WHERE venue_id = %s
                     AND (
-                        (start_date <= %s AND end_date >= %s)
-                        OR (start_date <= %s AND end_date >= %s)
-                        OR (start_date >= %s AND end_date <= %s)
+                        (start_date < %s AND end_date > %s)
+                        OR (start_date < %s AND end_date > %s)
+                        OR (start_date >= %s AND start_date < %s)
+                        OR (end_date > %s AND end_date <= %s)
                     )
                 """, [
                     venue_id,
-                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                     start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                     end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                     end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                     start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                     end_datetime.strftime('%Y-%m-%d %H:%M:%S')
                 ])
                 if cursor.fetchone()[0] > 0:
-                    raise ValueError("This time slot is already booked")
+                    return render(request, 'client/venue_booking.html', {
+                        'venue': venue,
+                        'venue_id': venue_id,
+                        'form_data': request.POST,
+                        'booking_conflict': True
+                    })
 
-            # Create payment record
-            with connection.cursor() as cursor:
+                # Create payment record
                 cursor.execute("""
                     INSERT INTO payment (method, amount, card_last_four, card_expiry, rate)
                     VALUES (%s, %s, %s, %s, %s)
@@ -518,13 +535,22 @@ def venue_booking(request, venue_id):
                     method,
                     total_amount,
                     card_number[-4:],
-                    expiry_date,  # Already in YYYY-MM format
+                    expiry_date,
                     venue['rate']
                 ])
                 payment_id = cursor.lastrowid
 
-            # Create booking record
-            with connection.cursor() as cursor:
+                # Get client information for notifications
+                cursor.execute("""
+                    SELECT first_name, last_name, email
+                    FROM users
+                    WHERE user_id = %s
+                """, [user_id])
+                client_info = cursor.fetchone()
+                client_name = f"{client_info[0]} {client_info[1]}"
+                client_email = client_info[2]
+
+                # Create booking record
                 cursor.execute("""
                     INSERT INTO booking (user_id, venue_id, payment_id, start_date, end_date)
                     VALUES (%s, %s, %s, %s, %s)
@@ -537,14 +563,13 @@ def venue_booking(request, venue_id):
                 ])
                 booking_id = cursor.lastrowid
 
-            # Send email notifications
-            try:
-                with connection.cursor() as cursor:
+                # Send email notification
+                try:
                     send_and_log_notification(
                         cursor,
                         "Booking Confirmation",
-                        request.session.get('email'),
-                        request.session.get('name'),
+                        client_email,
+                        client_name,
                         venue['name'],
                         booking_id,
                         venue_id,
@@ -553,9 +578,12 @@ def venue_booking(request, venue_id):
                         start_datetime,
                         end_datetime
                     )
-            except Exception:
-                # Continue even if notification fails - booking is still valid
-                pass
+                except Exception as e:
+                    # Log the notification error but don't fail the booking
+                    print(f"Failed to send notification: {str(e)}")
+
+                # Commit all database changes
+                connection.commit()
 
             messages.success(request, "Booking confirmed successfully!")
             return redirect('users:client_dashboard')
@@ -565,14 +593,14 @@ def venue_booking(request, venue_id):
             return render(request, 'client/venue_booking.html', {
                 'venue': venue,
                 'venue_id': venue_id,
-                'form_data': request.POST  # Pass form data back to repopulate the form
+                'form_data': request.POST
             })
         except Exception as e:
             messages.error(request, f"Failed to process booking: {str(e)}")
             return render(request, 'client/venue_booking.html', {
                 'venue': venue,
                 'venue_id': venue_id,
-                'form_data': request.POST  # Pass form data back to repopulate the form
+                'form_data': request.POST
             })
 
     # Handle GET request - calculate total amount based on time parameters
@@ -593,7 +621,8 @@ def venue_booking(request, venue_id):
 
     return render(request, 'client/venue_booking.html', {
         'venue': venue,
-        'venue_id': venue_id
+        'venue_id': venue_id,
+        'booking_conflict': False
     })
 
 def view_bookings(request):

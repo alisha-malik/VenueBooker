@@ -457,6 +457,9 @@ def delete_venue(request, venue_id):
                 WHERE venue_id = %s
             """, [venue_id])
             
+            # Commit the transaction
+            connection.commit()
+            
             messages.success(request, "Venue has been successfully deleted.")
             
     except Exception as e:

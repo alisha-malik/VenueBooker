@@ -253,10 +253,8 @@
           <label>Select Seasonal Categories</label>
           <div class="category-buttons">
             {% for season in seasons %}
-              <label>
-                <input type="checkbox" name="categories" value="{{ season }}" {% if season in field_values.selected_categories %}checked{% endif %}>
-                {{ season }}
-              </label>
+              <input type="checkbox" name="categories" value="{{ season }}" id="season-{{ forloop.counter }}" {% if season in field_values.selected_categories %}checked{% endif %}>
+              <label for="season-{{ forloop.counter }}">{{ season }}</label>
             {% endfor %}
           </div>
         </div>
@@ -332,6 +330,11 @@
         previewDiv.appendChild(img);
       }
     }
+
+    // Call this on page load to set initial state
+    document.addEventListener('DOMContentLoaded', function() {
+      toggleSeasonalOptions();
+    });
   </script>
 </body>
 </html>
