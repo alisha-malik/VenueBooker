@@ -41,7 +41,7 @@ A simple web application for booking venues.
 
 ### Admin URLs
 - **Admin Login**: `http://127.0.0.1:8000/users/admin_login/`
-- **Admin Dashboard**: `http://127.0.0.1:8000/admin/dashboard/`
+- **Admin Dashboard**: `http://127.0.0.1:8000/users/admin/dashboard/`
 
 ### Default Admin Credentials
 ```
