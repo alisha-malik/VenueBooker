@@ -2,6 +2,17 @@
 
 A simple web application for booking venues.
 
+---
+
+## Instruction Manual
+
+- **Open in GitHub Viewer:** [Venue Booker Manual (PDF)](./Venue%20Booker%20Manual.pdf)
+- **Direct download:** <a href="./Venue%20Booker%20Manual.pdf" download>Download the PDF</a>
+
+> GitHub READMEs can’t render PDFs inline. Keeping the PDF in the repo and linking to it (as above) is the most reliable approach.
+
+---
+
 ## Quick Start
 
 1. **Install Requirements**
